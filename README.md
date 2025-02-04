@@ -268,4 +268,39 @@ master   NotReady   control-plane   8m21s   v1.31.5   10.128.0.16   <none>      
 
 ### Install Flannel
 
-TODO
+Install helm
+```
+# curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+Follow official flannel readme (https://github.com/flannel-io/flannel?tab=readme-ov-file#deploying-flannel-with-helm):
+```
+# kubectl create ns kube-flannel
+# kubectl label --overwrite ns kube-flannel pod-security.kubernetes.io/enforce=privileged
+# helm repo add flannel https://flannel-io.github.io/flannel/
+```
+
+Finally install:
+```
+# helm install flannel --set podCidr="10.244.0.0/16" --namespace kube-flannel flannel/flannel
+NAME: flannel
+LAST DEPLOYED: Sun Jan 26 14:00:32 2025
+NAMESPACE: kube-flannel
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+Verify that coreDns has started:
+```
+# kubectl get pods -A
+NAMESPACE      NAME                             READY   STATUS    RESTARTS        AGE
+kube-flannel   kube-flannel-ds-vklr7            1/1     Running   0               103s
+kube-system    coredns-7c65d6cfc9-fztn5         1/1     Running   0               6h38m
+kube-system    coredns-7c65d6cfc9-sjxrn         1/1     Running   0               6h38m
+kube-system    etcd-master                      1/1     Running   1 (6m33s ago)   6h38m
+kube-system    kube-apiserver-master            1/1     Running   1 (6m33s ago)   6h38m
+kube-system    kube-controller-manager-master   1/1     Running   1 (6m33s ago)   6h38m
+kube-system    kube-proxy-sg2zv                 1/1     Running   1 (6m33s ago)   6h38m
+kube-system    kube-scheduler-master            1/1     Running   1 (6m33s ago)   6h38m
+```
