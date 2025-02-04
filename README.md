@@ -1,5 +1,13 @@
 # k8s-training
 
+Выжимка команд без вывода/комментариев собрана в файлах:
+- master.sh
+- worker.sh
+- update-master.sh
+- update-worker.sh
+
+
+
 # Yandex Cloud
 ### Buy VMs
 1 master and 3 workers, all Debian 11 (2 cpu, 8 ram, 30 gb ssd)
