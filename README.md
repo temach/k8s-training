@@ -78,7 +78,7 @@ Kubelet must match the target kubernetes version.
 Prepare debian to add custom ppa repos:
 ```
 # apt install gpg
-# sudo apt-get install ca-certificates curl
+# sudo apt-get install ca-certificates
 # sudo install -m 0755 -d /etc/apt/keyrings
 ```
 
@@ -107,6 +107,13 @@ Instructions from CRI-O readme, configure final vm params:
 ```
 
 "br_netfilter" was actually already loaded by "bridge" kernel module. 
+
+
+Useful links:
+- https://github.com/cri-o/packaging/blob/main/README.md#distributions-using-deb-packages
+- https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md
+- https://kubernetes.io/docs/tasks/administer-cluster/migrating-from-dockershim/migrate-dockershim-dockerd/
+
 
 ### kubeadm init
 
