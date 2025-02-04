@@ -43,7 +43,7 @@ EOF
 
 ### Install CRI (container)
 
-I choose docker:
+I choose docker (but turns out under the hood docker uses containerd anyway):
 ```
 # sudo apt update
 # sudo apt upgrade
@@ -55,6 +55,25 @@ Install cri-docker for cri integration (see https://mirantis.github.io/cri-docke
 # wget --show-progress 'https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.16/cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb' -o cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
 # sudo dpkg -i cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
 ```
+
+Also noticed that cri-docker binds to all addresses making it available over internet:
+```
+# sudo ss -lntp
+State       Recv-Q   Send-Q     Local Address:Port         Peer Address:Port      Process                                    
+LISTEN      0        4096           127.0.0.1:40437             0.0.0.0:*          users:(("containerd",pid=563,fd=12))      
+LISTEN      0        128              0.0.0.0:22                0.0.0.0:*          users:(("sshd",pid=623,fd=3))             
+LISTEN      0        128                 [::]:22                   [::]:*          users:(("sshd",pid=623,fd=4))             
+LISTEN      0        4096                   *:35405                   *:*          users:(("cri-dockerd",pid=1636,fd=3))
+
+```
+
+Changed systemd file to bind to localhost only by adding "streaming-bind-addr" flag:
+```
+# vim /lib/systemd/system/cri-docker.service
+ExecStart=/usr/bin/cri-dockerd --container-runtime-endpoint fd:// --streaming-bind-addr 127.0.0.1
+# sudo systemctl enable cri-docker
+```
+
 
 ### Install CNI (network) plugins
 
