@@ -83,6 +83,7 @@ Prepare debian to add custom ppa repos:
 ```
 
 Instruction from CRI-O repo (https://github.com/cri-o/packaging/blob/main/README.md#bootstrap-a-cluster-1)
+And offical kubernetes v1.31 docs (https://v1-31.docs.kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl)
 Add kubernetes repository with specific version:
 ```
 # KUBERNETES_VERSION=v1.31
@@ -95,6 +96,7 @@ Install components:
 ```
 # apt update
 # apt install -y kubelet kubeadm kubectl
+# apt-mark hold kubelet kubeadm kubectl
 ```
 
 
