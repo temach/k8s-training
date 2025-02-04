@@ -1,6 +1,7 @@
 # k8s-training
 
-# Buy VMs
+# Yandex Cloud
+### Buy VMs
 1 master and 3 workers, all Debian 11 (2 cpu, 8 ram, 30 gb ssd)
 
 ```
@@ -13,6 +14,7 @@ Host k8s-train-master
 Public IPs may change, so best use yc ssh
 ```
 yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name master
+yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name worker1
 ```
 
 List/Start/Stop instances:
@@ -23,7 +25,11 @@ List/Start/Stop instances:
 ```
 
 
-# Prepare them (see: https://kubernetes.io/docs/setup/production-environment/container-runtimes/)
+# Prepare vm
+
+### Kubernetes getting started docs
+
+see: https://kubernetes.io/docs/setup/production-environment/container-runtimes/
 
 Enable packet forwarding:
 sysctl params required by setup, params persist across reboots
@@ -35,25 +41,24 @@ EOF
 # sudo sysctl --system
 ```
 
-# Install CRI (container)
+### Install CRI (container)
 
-Update vm and install docker from repos
-
+I choose docker:
 ```
 # sudo apt update
 # sudo apt upgrade
 # sudo apt install docker.io
 ```
 
-Install docker shim for cri integration (see https://mirantis.github.io/cri-dockerd/usage/install/) on debian 11 bullseye:
+Install cri-docker for cri integration (see https://mirantis.github.io/cri-dockerd/usage/install/) on debian 11 bullseye:
 ```
-# wget 'https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.16/cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb' -o cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
+# wget --show-progress 'https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.16/cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb' -o cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
 # sudo dpkg -i cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
 ```
 
-# Install CNI (network)
+### Install CNI (network) plugins
 
-Used instruction in flannel readme (https://github.com/flannel-io/flannel?tab=readme-ov-file#deploying-flannel-manually):
+See instruction in flannel readme (https://github.com/flannel-io/flannel?tab=readme-ov-file#deploying-flannel-manually):
 ```
 Flannel uses portmap as CNI network plugin by default;
 when deploying Flannel ensure that the CNI Network plugins are installed in /opt/cni/bin
@@ -66,30 +71,45 @@ Install plugins:
 # tar -C /opt/cni/bin -xzf cni-plugins-linux-amd64-v1.6.2.tgz
 ```
 
-# Bootstrap cluster
+### Install kubeadm, kubelet, kubectl
+
+Kubelet must match the target kubernetes version.
+
+Prepare debian to add custom ppa repos:
+```
+# apt install gpg
+# sudo apt-get install ca-certificates curl
+# sudo install -m 0755 -d /etc/apt/keyrings
+```
 
 Instruction from CRI-O repo (https://github.com/cri-o/packaging/blob/main/README.md#bootstrap-a-cluster-1)
-Add kubernetes repository for 
-- kubeadm
-- kubelet
-- kubectl
+Add kubernetes repository with specific version:
 ```
-# curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key |
-    gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# KUBERNETES_VERSION=v1.31
+# curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-# echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" |
-    tee /etc/apt/sources.list.d/kubernetes.list
+# echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
 ```
 
-Configure final vm params:
+Install components:
+```
+# apt update
+# apt install -y kubelet kubeadm kubectl
+```
+
+
+### Final vm configs
+
+Instructions from CRI-O readme, configure final vm params:
 ```
 # swapoff -a
 # modprobe br_netfilter
 ```
 
-"br_netfilter" was already loaded by "bridge" kernel module. 
+"br_netfilter" was actually already loaded by "bridge" kernel module. 
 
-# kubeadm init
+### kubeadm init
+
 Finally master init, pass --pod-network-cird as flannel requests (https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md)
 ```
 kubeadm init --pod-network-cidr=10.244.0.0/16
