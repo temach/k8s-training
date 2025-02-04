@@ -12,10 +12,6 @@ install -m 0755 -d /etc/apt/keyrings
 wget --show-progress 'https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.16/cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb' -O cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
 dpkg -i cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
 
-mkdir -p /opt/cni/bin
-wget --show-progress 'https://github.com/containernetworking/plugins/releases/download/v1.6.2/cni-plugins-linux-amd64-v1.6.2.tgz' -O cni-plugins-linux-amd64-v1.6.2.tgz
-tar -C /opt/cni/bin -xzf cni-plugins-linux-amd64-v1.6.2.tgz
-
 export KUBERNETES_VERSION=v1.31
 curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list

@@ -410,3 +410,36 @@ worker1   Ready      <none>          52m   v1.31.5   10.128.0.25   <none>       
 worker2   NotReady   <none>          11s   v1.31.5   10.128.0.26   <none>        Debian GNU/Linux 11 (bullseye)   5.10.0-19-amd64   docker://20.10.5+dfsg1
 worker3   NotReady   <none>          19s   v1.31.5   10.128.0.3    <none>        Debian GNU/Linux 11 (bullseye)   5.10.0-19-amd64   docker://20.10.5+dfsg1
 ```
+
+
+# Upgrade master
+
+Bump version to 1.32
+```
+# vim /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /
+```
+
+```
+# apt update
+# apt list --upgradable
+Listing... Done
+cri-tools/unknown 1.32.0-1.1 amd64 [upgradable from: 1.31.1-1.1]
+kubeadm/unknown 1.32.1-1.1 amd64 [upgradable from: 1.31.5-1.1]
+kubectl/unknown 1.32.1-1.1 amd64 [upgradable from: 1.31.5-1.1]
+kubelet/unknown 1.32.1-1.1 amd64 [upgradable from: 1.31.5-1.1]
+kubernetes-cni/unknown 1.6.0-1.1 amd64 [upgradable from: 1.5.1-1.1]
+```
+
+Package cri-docker does not need update.
+
+At this point I realised that manually installing cni plugins was a waste of time, because they are pulled as dependency of kubelet and my hand intsall into /opt/cni/bin was overriden by apt with version 1.5.1 binaries.
+```
+# apt-cache rdepends --installed kubernetes-cni
+kubernetes-cni
+Reverse Depends:
+  kubelet
+```
+
+
+
