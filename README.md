@@ -25,7 +25,7 @@ List/Start/Stop instances:
 ```
 
 
-# Prepare vm
+# Setup Master vm
 
 ### Kubernetes getting started docs
 
@@ -304,3 +304,96 @@ kube-system    kube-controller-manager-master   1/1     Running   1 (6m33s ago) 
 kube-system    kube-proxy-sg2zv                 1/1     Running   1 (6m33s ago)   6h38m
 kube-system    kube-scheduler-master            1/1     Running   1 (6m33s ago)   6h38m
 ```
+
+
+# Setup worker vm
+
+### Similar commands to master setup
+```
+# cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.ipv4.ip_forward = 1
+EOF
+# sudo sysctl --system
+
+# sudo apt update
+# sudo apt upgrade
+# sudo apt install docker.io
+
+# wget --show-progress 'https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.16/cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb' -o cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
+# sudo dpkg -i cri-dockerd_0.3.16.3-0.debian-bullseye_amd64.deb
+```
+
+Manually change ExecStart line to bind to local interface only:
+```
+# vim /lib/systemd/system/cri-docker.service
+ExecStart=/usr/bin/cri-dockerd --container-runtime-endpoint fd:// --streaming-bind-addr 127.0.0.1
+
+# sudo systemctl enable cri-docker
+```
+
+Continue:
+```
+# mkdir -p /opt/cni/bin
+# wget --show-progress 'https://github.com/containernetworking/plugins/releases/download/v1.6.2/cni-plugins-linux-amd64-v1.6.2.tgz' -o cni-plugins-linux-amd64-v1.6.2.tgz
+# tar -C /opt/cni/bin -xzf cni-plugins-linux-amd64-v1.6.2.tgz
+
+# apt install gpg
+# sudo apt-get install ca-certificates
+# sudo install -m 0755 -d /etc/apt/keyrings
+
+# export KUBERNETES_VERSION=v1.31
+# curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+# echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
+
+# apt update
+# apt install -y kubelet kubeadm kubectl
+# apt-mark hold kubelet kubeadm kubectl
+```
+
+### worker1 kubeadm-config.yaml
+
+```
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: JoinConfiguration
+nodeRegistration:
+  name: worker1
+  criSocket: unix:///var/run/cri-dockerd.sock
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: "10.128.0.16:6443"
+    token: "0XXXXX.0XXXXXXXXXXXXXXn"
+    caCertHashes: 
+      - "sha256:57XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXa"
+    unsafeSkipCAVerification: false
+
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+```
+
+Finally kubeadm join:
+```
+# kubeadm join --config kubeadm-config.yaml 
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-check] Waiting for a healthy kubelet at http://127.0.0.1:10248/healthz. This can take up to 4m0s
+[kubelet-check] The kubelet is healthy after 501.767425ms
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+```
+
+And repeat for other workers, changing their nodeRegistration.name parameter.
