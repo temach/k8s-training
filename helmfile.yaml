@@ -1,0 +1,47 @@
+#
+# helmfile docs: https://helmfile.readthedocs.io/en/latest/
+#
+
+repositories:
+  - name: bitnami
+    # must enable oci, see: https://helmfile.readthedocs.io/en/latest/#oci-registries
+    oci: true
+    url: registry-1.docker.io/bitnamicharts
+
+helmDefaults:
+  # automatically create release namespaces if they do not exist
+  createNamespace: true
+
+releases:
+  - name: kafka
+    namespace: prod
+    chart: bitnami/kafka
+    # must specify chart version else error: [release "kafka": the version for OCI charts should be semver compliant, the latest tag is not supported anymore for helm >= 3.8.0]
+    version: "31.3.1" 
+    values:
+      - image:
+          # by default uses latest helm chart with specific kafka image
+          tag: "3.5.2"
+        broker:
+          replicaCount: 5
+        listeners:
+          # will auto generate password
+          client:
+            protocol: SASL_PLAINTEXT
+          interbroker:
+            protocol: SASL_PLAINTEXT
+
+  - name: kafka
+    namespace: dev
+    chart: bitnami/kafka
+    # must specify chart version else error: [release "kafka": the version for OCI charts should be semver compliant, the latest tag is not supported anymore for helm >= 3.8.0]
+    version: "31.3.1" 
+    values:
+      - broker:
+          replicaCount: 1
+        listeners:
+          # will work without password
+          client:
+            protocol: PLAINTEXT
+          interbroker:
+            protocol: PLAINTEXT
