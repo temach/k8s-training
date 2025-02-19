@@ -66,7 +66,7 @@ Create /root/helmfile.yaml and install:
 ```
 
 
-Partial Output:
+Partial Output from installing two kafka releases into dev and prod:
 ```
 Upgrading release=kafka, chart=/tmp/helmfile713633676/dev/kafka/kafka/31.3.1/kafka, namespace=dev
 Upgrading release=kafka, chart=/tmp/helmfile713633676/prod/kafka/kafka/31.3.1/kafka, namespace=prod
