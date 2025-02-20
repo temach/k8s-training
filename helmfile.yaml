@@ -1,5 +1,6 @@
 #
 # helmfile docs: https://helmfile.readthedocs.io/en/latest/
+# when uninstalling chart, must manually delete pvc/pv
 #
 
 repositories:
