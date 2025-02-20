@@ -24,12 +24,19 @@ releases:
           tag: "3.5.2"
         broker:
           replicaCount: 5
+          persistence:
+            # no volumes
+            enabled: false
         listeners:
           # will auto generate password
           client:
             protocol: SASL_PLAINTEXT
           interbroker:
             protocol: SASL_PLAINTEXT
+        controller:
+          persistence:
+            # no volumes
+            enabled: false
 
   - name: kafka
     namespace: dev
@@ -39,9 +46,14 @@ releases:
     values:
       - broker:
           replicaCount: 1
+          persistence:
+            size: 5Gi
         listeners:
           # will work without password
           client:
             protocol: PLAINTEXT
           interbroker:
             protocol: PLAINTEXT
+        controller:
+          persistence:
+            size: 3Gi
