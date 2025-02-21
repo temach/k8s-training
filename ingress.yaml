@@ -2,7 +2,6 @@
   kind: Ingress
   metadata:
     name: main
-    namespace: home
   spec:
     ingressClassName: nginx
     rules:
