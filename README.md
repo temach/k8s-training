@@ -128,8 +128,69 @@ ingress-nginx   ingress-nginx-controller             LoadBalancer   10.255.44.53
 ingress-nginx   ingress-nginx-controller-admission   ClusterIP      10.255.33.156   <none>        443/TCP                      120m   app.kubernetes.io/component=controller,app.kubernetes.io/instance=ingress-nginx,app.kubernetes.io/name=ingress-nginx
 kube-system     kube-dns                             ClusterIP      10.255.0.10     <none>        53/UDP,53/TCP,9153/TCP       26d    k8s-app=kube-dns
 
-# kube
+# kubectl port-forward -v1 -n home service/http-server 8000:mainhttp
+Forwarding from 127.0.0.1:8000 -> 8000
+Forwarding from [::1]:8000 -> 8000
+
+# curl 'http://localhost:8000/index.html'
+<html><p>Hellow world!</p></html>
+
 ```
 
+Regarding port-forwarding to service you can only forward to a defined port in the service. Thats why here 'mainhttp' is used.
 
-Ok, pod works, now must somehow test ingress.
+
+Ok, pod works, now test ingress, see: https://kubernetes.github.io/ingress-nginx/deploy/#local-testing
+To test we forward traffic from outside to the actual controller that implements the rules:
+```
+# kubectl port-forward --namespace=ingress-nginx service/ingress-nginx-controller 8000:80
+Forwarding from 127.0.0.1:8000 -> 80
+Forwarding from [::1]:8000 -> 80
+Handling connection for 8000
+Handling connection for 8000
+
+
+# curl -vv --header 'Host: wrong.hostname.otus' 'http://localhost:8000/index.html'
+*   Trying 127.0.0.1:8000...
+* Connected to localhost (127.0.0.1) port 8000 (#0)
+> GET /index.html HTTP/1.1
+> Host: wrong.otus
+> User-Agent: curl/7.74.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 404 Not Found
+< Date: Fri, 21 Feb 2025 14:36:29 GMT
+< Content-Type: text/html
+< Content-Length: 146
+< Connection: keep-alive
+< 
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx</center>
+</body>
+</html>
+* Connection #0 to host localhost left intact
+
+# curl -vv --header 'Host: homework.otus' 'http://localhost:8000/index.html'
+*   Trying 127.0.0.1:8000...
+* Connected to localhost (127.0.0.1) port 8000 (#0)
+> GET /index.html HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/7.74.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Date: Fri, 21 Feb 2025 14:36:22 GMT
+< Content-Type: text/html
+< Content-Length: 34
+< Connection: keep-alive
+< Last-Modified: Fri, 21 Feb 2025 11:13:52 GMT
+< 
+<html><p>Hellow world!</p></html>
+* Connection #0 to host localhost left intact
+```
+
