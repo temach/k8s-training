@@ -5,7 +5,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: http-server
+    app: http-server
   ports:
     - protocol: TCP
       port: 80
