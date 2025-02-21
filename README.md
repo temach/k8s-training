@@ -154,8 +154,11 @@ Forwarding from 127.0.0.1:8000 -> 80
 Forwarding from [::1]:8000 -> 80
 Handling connection for 8000
 Handling connection for 8000
+```
 
 
+Test that bad hostname does not work:
+```
 # curl -vv --header 'Host: wrong.hostname.otus' 'http://localhost:8000/index.html'
 *   Trying 127.0.0.1:8000...
 * Connected to localhost (127.0.0.1) port 8000 (#0)
@@ -179,7 +182,11 @@ Handling connection for 8000
 </body>
 </html>
 * Connection #0 to host localhost left intact
+```
 
+
+Test that correct hostname + index.html works
+```
 # curl -vv --header 'Host: homework.otus' 'http://localhost:8000/index.html'
 *   Trying 127.0.0.1:8000...
 * Connected to localhost (127.0.0.1) port 8000 (#0)
@@ -199,4 +206,66 @@ Handling connection for 8000
 <html><p>Hellow world!</p></html>
 * Connection #0 to host localhost left intact
 ```
+
+
+Test that correct hostname + /homepage works
+```
+# curl -vv --header 'Host: homework.otus' 'http://localhost:8000/homepage'
+*   Trying 127.0.0.1:8000...
+* Connected to localhost (127.0.0.1) port 8000 (#0)
+> GET /homepage HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/7.74.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Date: Fri, 21 Feb 2025 15:00:10 GMT
+< Content-Type: text/html
+< Content-Length: 34
+< Connection: keep-alive
+< Last-Modified: Fri, 21 Feb 2025 11:13:52 GMT
+< 
+<html><p>Hellow world!</p></html>
+* Connection #0 to host localhost left intact
+```
+
+Test that correct hostname + /homexxxxxx does NOT work
+```
+root@master:~/k8s-training# curl -vv --header 'Host: homework.otus' 'http://localhost:8000/homexxxxxx'
+*   Trying 127.0.0.1:8000...
+* Connected to localhost (127.0.0.1) port 8000 (#0)
+> GET /homexxxxxx HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/7.74.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 404 Not Found
+< Date: Fri, 21 Feb 2025 15:02:31 GMT
+< Content-Type: text/html
+< Content-Length: 146
+< Connection: keep-alive
+< 
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx</center>
+</body>
+</html>
+* Connection #0 to host localhost left intact
+```
+
+
+All is per requirements, unfortunatelly there are still some problems left:
+
+- can not specify /index.html as Exact path in nginx, because of strict-validate-path-type check, see: https://devops.stackexchange.com/questions/19915/ingress-failing-due-to-error-path-cannot-be-used-with-pathtype-prefix
+
+- because of that, requesting /index.xxxxx also works correctly
+
+- /homepage is matched in Prefix manner, so requesting /hostnamexxxxxx also works correctly
+
+This behaviour is specific to nginx ingress controller.
+
 
