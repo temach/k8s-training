@@ -257,14 +257,15 @@ Test that correct hostname + /homexxxxxx does NOT work
 * Connection #0 to host localhost left intact
 ```
 
+# Nginx behaiviour
 
 All is per requirements, unfortunatelly there are still some problems left:
 
 - can not specify /index.html as Exact path in nginx, because of strict-validate-path-type check, see: https://devops.stackexchange.com/questions/19915/ingress-failing-due-to-error-path-cannot-be-used-with-pathtype-prefix
 
-- because of that, requesting /index.xxxxx also works correctly
+- because of that, requesting /index.xxxxx is unexpectedly valid
 
-- /homepage is matched in Prefix manner, so requesting /hostnamexxxxxx also works correctly
+- /homepage is matched in Prefix manner, so requesting /hostnamexxxxxx is also unexpectedly valid
 
 This behaviour is specific to nginx ingress controller.
 
