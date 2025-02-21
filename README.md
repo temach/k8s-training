@@ -1,5 +1,8 @@
 # k8s-training
 
+
+# Install
+
 Install nginx ingress controller
 see: https://kubernetes.github.io/ingress-nginx/deploy/#quick-start
 
@@ -70,6 +73,8 @@ ingress.networking.k8s.io/main created
 service/http-server created
 ```
 
+# Testing pod and service (needs socat)
+
 First test with port-forward:
 ```
 # kubectl get pods -n home -o wide
@@ -139,6 +144,7 @@ Forwarding from [::1]:8000 -> 8000
 
 Regarding port-forwarding to service you can only forward to a defined port in the service. Thats why here 'mainhttp' is used.
 
+# Testing ingress (needs socat)
 
 Ok, pod works, now test ingress, see: https://kubernetes.github.io/ingress-nginx/deploy/#local-testing
 To test we forward traffic from outside to the actual controller that implements the rules:
