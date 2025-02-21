@@ -14,4 +14,4 @@
                 service:
                   name: http-server
                   port:
-                    number: 80
+                    name: mainhttp
