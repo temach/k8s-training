@@ -232,7 +232,7 @@ Test that correct hostname + /homepage works
 
 Test that correct hostname + /homexxxxxx does NOT work
 ```
-root@master:~/k8s-training# curl -vv --header 'Host: homework.otus' 'http://localhost:8000/homexxxxxx'
+# curl -vv --header 'Host: homework.otus' 'http://localhost:8000/homexxxxxx'
 *   Trying 127.0.0.1:8000...
 * Connected to localhost (127.0.0.1) port 8000 (#0)
 > GET /homexxxxxx HTTP/1.1
