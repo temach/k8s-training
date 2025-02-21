@@ -2,12 +2,24 @@
   kind: Ingress
   metadata:
     name: main
+
+    # add rewrite rules: https://kubernetes.github.io/ingress-nginx/examples/rewrite/
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /index.html
+    
   spec:
     ingressClassName: nginx
     rules:
       - host: homework.otus
         http:
           paths:
+            - pathType: ImplementationSpecific
+              path: /homepage
+              backend:
+                service:
+                  name: http-server
+                  port:
+                    name: mainhttp
             - pathType: Prefix
               path: /
               backend:
