@@ -179,6 +179,7 @@ metadata:
 ```
 
 Note that cluster version needs to be updated in the filesystem config v1.31.0 -> v1.32.1, appart from that everything matches.
+Also note that localApiEndpoint lost .name property.
 
 
 ### Final config files
@@ -193,7 +194,6 @@ nodeRegistration:
   criSocket: unix:///var/run/cri-dockerd.sock
 localAPIEndpoint:
   advertiseAddress: 10.128.0.16
-  name: master
 
 ---
 apiVersion: kubeadm.k8s.io/v1beta4
@@ -265,4 +265,89 @@ At this point I forgot to create kube-scheduler-custom.conf, and got error on ku
 After creating the file and manual restart of scheduler, all is working:
 ```
 # kubectl delete pod -n kube-system kube-scheduler-master
+```
+
+Verify that scheduler uses new config file:
+```
+# ps axuf | grep scheduler
+root       18578  0.7  0.8 1292572 68704 ?       Ssl  20:58   0:12  \_ kube-scheduler --authentication-kubeconfig=/etc/kubernetes/scheduler.conf --authorization-kubeconfig=/etc/kubernetes/scheduler.conf --bind-address=127.0.0.1 --config=/etc/kubernetes/kube-scheduler-custom.conf --kubeconfig=/etc/kubernetes/scheduler.conf --leader-elect=true
+
+# cat /etc/kubernetes/manifests/kube-scheduler.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-scheduler
+    tier: control-plane
+  name: kube-scheduler
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-scheduler
+    - --authentication-kubeconfig=/etc/kubernetes/scheduler.conf
+    - --authorization-kubeconfig=/etc/kubernetes/scheduler.conf
+    - --bind-address=127.0.0.1
+    - --config=/etc/kubernetes/kube-scheduler-custom.conf
+    - --kubeconfig=/etc/kubernetes/scheduler.conf
+    - --leader-elect=true
+    image: registry.k8s.io/kube-scheduler:v1.32.1
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      failureThreshold: 8
+      httpGet:
+        host: 127.0.0.1
+        path: /livez
+        port: 10259
+        scheme: HTTPS
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    name: kube-scheduler
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        host: 127.0.0.1
+        path: /readyz
+        port: 10259
+        scheme: HTTPS
+      periodSeconds: 1
+      timeoutSeconds: 15
+    resources:
+      requests:
+        cpu: 100m
+    startupProbe:
+      failureThreshold: 24
+      httpGet:
+        host: 127.0.0.1
+        path: /livez
+        port: 10259
+        scheme: HTTPS
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    volumeMounts:
+    - mountPath: /etc/kubernetes/kube-scheduler-custom.conf
+      name: kube-scheduler-custom-conf
+      readOnly: true
+    - mountPath: /etc/kubernetes/scheduler.conf
+      name: kubeconfig
+      readOnly: true
+  hostNetwork: true
+  priority: 2000001000
+  priorityClassName: system-node-critical
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/kube-scheduler-custom.conf
+      type: File
+    name: kube-scheduler-custom-conf
+  - hostPath:
+      path: /etc/kubernetes/scheduler.conf
+      type: FileOrCreate
+    name: kubeconfig
+status: {}
 ```
