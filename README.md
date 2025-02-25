@@ -424,6 +424,8 @@ worker3   NotReady   <none>          19s   v1.31.5   10.128.0.3    <none>       
 
 See: https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/
 
+(Alternatively upgrade via kubeadm-config.yaml file, see: https://blog.honosoft.com/2020/01/31/kubeadm-how-to-upgrade-update-your-configuration/)
+
 Bump repo version to 1.32
 ```
 # vim /etc/apt/sources.list.d/kubernetes.list
