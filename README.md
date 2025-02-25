@@ -257,6 +257,9 @@ Its possible to manually edit /etc/kubernetes/manifests which will re-create sta
 # kubeadm init phase control-plane scheduler --config /root/kubeadm-config.yaml
 ```
 
+Note that I did NOT manually edit the kubeadm-config ConfigMap, only ran the init phase command.
+
+
 At this point I forgot to create kube-scheduler-custom.conf, and got error on kube-scheduler-master pod:
 ```
  kubelet  MountVolume.SetUp failed for volume "kube-scheduler-custom-conf" : hostPath type check failed: /etc/kubernetes/kube-scheduler-custom.conf is not a file
