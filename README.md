@@ -1,8 +1,9 @@
 # k8s-training
 
 
+# Add kube scheduler configuration file
 
-# View current kube-scheduler configuration
+### View current kube-scheduler configuration
 
 
 View current options of kube-scheduler:
@@ -88,7 +89,7 @@ status: {}
 ```
 
 
-# Add KubeSchedulerConfiguration via kubeadm-config.yaml
+### Add KubeSchedulerConfiguration via kubeadm-config.yaml
 
 To install it must modify file on the filesystem, can not change scheduler config via kubectl.
 see: https://kubernetes.io/docs/reference/scheduling/config/
@@ -180,7 +181,7 @@ metadata:
 Note that cluster version needs to be updated in the filesystem config v1.31.0 -> v1.32.1, appart from that everything matches.
 
 
-# Final config files
+### Final config files
 
 Final kubeadm-conf.yaml
 ```
@@ -246,12 +247,22 @@ profiles:
 ```
 
 
-# Apply changed kubeadm config to reconfigure cluster
+### Apply changed kubeadm config to reconfigure cluster
 
 see: https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/
 
-Now its a question of how to apply this kubeadm config.
- ```
- Updating a file in /etc/kubernetes/manifests will tell the kubelet to restart the static Pod for the corresponding component. Try doing these changes one node at a time to leave the cluster without downtime.
- ```
- 
+Its possible to manually edit /etc/kubernetes/manifests which will re-create static the pod, but for IaC use kubeadm:
+
+```
+# kubeadm init phase control-plane scheduler --config /root/kubeadm-config.yaml
+```
+
+At this point I forgot to create kube-scheduler-custom.conf, and got error on kube-scheduler-master pod:
+```
+ kubelet  MountVolume.SetUp failed for volume "kube-scheduler-custom-conf" : hostPath type check failed: /etc/kubernetes/kube-scheduler-custom.conf is not a file
+```
+
+After creating the file and manual restart of scheduler, all is working:
+```
+# kubectl delete pod -n kube-system kube-scheduler-master
+```
