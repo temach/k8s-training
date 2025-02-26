@@ -270,3 +270,28 @@ All is per requirements, unfortunatelly there are still some problems left:
 This behaviour is specific to nginx ingress controller.
 
 
+# Expose internet access
+
+see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
+
+### Simplest way via external-ip (looses source-ip)
+
+Edit service to change type to NodePort and assign external IP.
+The files are service-node-port-external-ip.yaml and values-node-port-external-ip.yaml.
+Update helm values:
+```
+
+
+```
+
+Install new service:
+```
+
+
+```
+
+
+
+### Install LoadBalancer manager to provision EXTERNAL-IP for Ingress and allow out-of cluster access
+
+
