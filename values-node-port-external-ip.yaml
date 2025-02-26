@@ -1,0 +1,21 @@
+## nginx configuration
+## Ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/nginx-configuration/index.md
+##
+#
+# Guide:
+# - https://kubernetes.github.io/ingress-nginx/deploy/baremetal/#external-ips
+#
+# Get the original values.yaml
+# - helm show values ingress-nginx --repo https://kubernetes.github.io/ingress-nginx
+#
+# Configure helm chart for baremetal deployment (by default cloud is expected), based on differences between cloud and baremetal deployement:
+# - curl 'https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/cloud/deploy.yaml' > cloud.yaml
+# - curl 'https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/baremetal/deploy.yaml' > baremetal.yaml
+#
+
+controller:
+  service:
+    type: NodePort
+    externalTrafficPolicy: ""
+  publishService:
+    enabled: false
