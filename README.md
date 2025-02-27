@@ -406,6 +406,83 @@ This pool can be defined through IPAddressPool objects in the same namespace as 
 Which makes sense, because then traffic between nodes would get messed up. So it seems that everything would work if only traffic was not DNAT'ed,
 so if only `curl http://158.160.61.136/` would actually reach the node with destination_ip=158.160.61.136 and not destination_ip=10.128.0.16 as it is now.
 
+At this point lets try using a floating IPv4 address, buy one in cloud: 89.169.150.171
+
+Create metallb l2 advertisement:
+```
+# k apply -n metallb -f metallb-l2-advertisement.yaml
+
+# k get svc -A
+NAMESPACE       NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                      AGE
+default         kubernetes                           ClusterIP      10.255.0.1      <none>           443/TCP                      32d
+home            http-server                          ClusterIP      10.255.36.158   <none>           8000/TCP                     6d1h
+ingress-nginx   ingress-nginx-controller             LoadBalancer   10.255.225.92   89.169.150.171   80:32646/TCP,443:31442/TCP   5h43m
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP      10.255.163.11   <none>           443/TCP                      5h43m
+kube-system     kube-dns                             ClusterIP      10.255.0.10     <none>           53/UDP,53/TCP,9153/TCP       32d
+metallb         metallb-webhook-service              ClusterIP      10.255.92.196   <none>           443/TCP                      5h25m
+```
+
+Check that service was advertised and it is - "announcing from node with protocol layer2":
+```
+# k events svc/ingress-nginx-controller -n ingress-nginx
+LAST SEEN   TYPE     REASON            OBJECT                             MESSAGE
+56m         Normal   ClearAssignment   Service/ingress-nginx-controller   current IP for "ingress-nginx/ingress-nginx-controller" not allowed by config, will attempt for new IP assignment: ["158.160.61.136"] is not allowed in config
+56m         Normal   IPAllocated       Service/ingress-nginx-controller   Assigned IP ["89.169.150.171"]
+11m         Normal   nodeAssigned      Service/ingress-nginx-controller   announcing from node "worker3" with protocol "layer2"
+```
+
+Check that advertisement went out from network card, check from master and check from worker1:
+```
+root@master:~# arping 89.169.150.171
+arping: lookup dev: No matching interface found using getifaddrs().
+arping: Unable to automatically find interface to use. Is it on the local LAN?
+arping: Use -i to manually specify interface. Guessing interface eth0.
+ARPING 89.169.150.171
+58 bytes from 00:00:5e:00:01:00 (89.169.150.171): index=0 time=9.407 usec
+58 bytes from 00:00:5e:00:01:00 (89.169.150.171): index=1 time=156.875 usec
+58 bytes from 00:00:5e:00:01:00 (89.169.150.171): index=2 time=141.916 usec
+^C
+--- 89.169.150.171 statistics ---
+3 packets transmitted, 3 packets received,   0% unanswered (0 extra)
+rtt min/avg/max/std-dev = 0.009/0.103/0.157/0.066 ms
+
+
+root@worker1:~# arping 89.169.150.171
+arping: lookup dev: No matching interface found using getifaddrs().
+arping: Unable to automatically find interface to use. Is it on the local LAN?
+arping: Use -i to manually specify interface. Guessing interface eth0.
+ARPING 89.169.150.171
+58 bytes from 00:00:5e:00:01:00 (89.169.150.171): index=0 time=8.516 usec
+58 bytes from 00:00:5e:00:01:00 (89.169.150.171): index=1 time=121.845 usec
+58 bytes from 00:00:5e:00:01:00 (89.169.150.171): index=2 time=119.261 usec
+58 bytes from 00:00:5e:00:01:00 (89.169.150.171): index=3 time=125.565 usec
+^C
+--- 89.169.150.171 statistics ---
+4 packets transmitted, 4 packets received,   0% unanswered (0 extra)
+rtt min/avg/max/std-dev = 0.009/0.094/0.126/0.049 ms
+```
+
+However adversitements for 89.169.150.171 never arrive. 
+This probably means arp is blocked to protect agains mac spoofing, see: https://metallb.io/troubleshooting/
+```
+root@worker1:~# tcpdump -n -i eth0 arp 
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+13:16:33.970922 ARP, Request who-has 10.128.0.25 tell 10.128.0.2, length 28
+13:16:33.970930 ARP, Reply 10.128.0.25 is-at d0:0d:2b:5b:f8:82, length 28
+13:16:41.711622 ARP, Request who-has 10.128.0.26 tell 10.128.0.25, length 28
+13:16:41.711768 ARP, Reply 10.128.0.26 is-at 00:00:5e:00:01:00, length 28
+13:16:43.971116 ARP, Request who-has 10.128.0.25 tell 10.128.0.2, length 28
+13:16:43.971140 ARP, Reply 10.128.0.25 is-at d0:0d:2b:5b:f8:82, length 28
+```
+
+This whole issue is due to one-to-one NAT in yc:
+ - see: https://yandex.cloud/ru/docs/vpc/concepts/address
+ - see: https://yandex.cloud/ru/docs/compute/concepts/network
+
+Basically a VM gets a private ipv4 address, but all public access is done via one-to-one NAT.
+It seems impossible to directly access internet without this NAT.
+
 
 
 
