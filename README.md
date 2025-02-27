@@ -326,6 +326,85 @@ metallb         metallb-speaker-qqllz                      4/4     Running   0  
 metallb         metallb-speaker-ss9hk                      4/4     Running   0               38s     10.128.0.16   master    <none>           <none>
 ```
 
+Add ip address pool. Use the external ip given out to nodes. Looks like no adversiting is needed from MetalLB because these ip already lead to nodes.
+Actually when outside traffic hits the node network card, its already using 10.x.x.x as destination ip.
+Confirmed with tcpdump on master node (while client send `curl -vvv http://158.160.61.136:12345/` request):
+```
+# sudo tcpdump -i any port 12345
+tcpdump: data link type LINUX_SLL2
+listening on any, link-type LINUX_SLL2 (Linux cooked v2), snapshot length 262144 bytes
+
+07:45:43.536322 eth0  In  IP 79.134.37.172.57932 > master.ru-central1.internal.12345: Flags [S], seq 3720095364, win 64240, options [mss 1460,sackOK,TS val 744837090 ecr 0,nop,wscale 7], length 0
+07:45:43.536368 eth0  Out IP master.ru-central1.internal.12345 > 79.134.37.172.57932: Flags [R.], seq 0, ack 3720095365, win 0, length 0
+
+^C
+2 packets captured
+3 packets received by filter
+0 packets dropped by kernel
+
+# nslookup master.ru-central1.internal
+Server:		10.128.0.2
+Address:	10.128.0.2#53
+
+Name:	master.ru-central1.internal
+Address: 10.128.0.16
+```
+
+Check services before creating address pool:
+```
+# k get svc -A
+NAMESPACE       NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+default         kubernetes                           ClusterIP      10.255.0.1      <none>        443/TCP                      32d
+home            http-server                          ClusterIP      10.255.36.158   <none>        8000/TCP                     5d20h
+ingress-nginx   ingress-nginx-controller             LoadBalancer   10.255.225.92   <pending>     80:32646/TCP,443:31442/TCP   30m
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP      10.255.163.11   <none>        443/TCP                      30m
+kube-system     kube-dns                             ClusterIP      10.255.0.10     <none>        53/UDP,53/TCP,9153/TCP       32d
+metallb         metallb-webhook-service              ClusterIP      10.255.92.196   <none>        443/TCP                      12m
+```
+
+Create metallb address pool with master and worker1 addresses.
+```
+# k apply -f metallb-ip-address-pool.yaml -n metallb
+
+# k get ipaddresspool -A
+NAMESPACE   NAME      AUTO ASSIGN   AVOID BUGGY IPS   ADDRESSES
+metallb     default   false         false             ["158.160.61.136/32","158.160.36.172/32"]
+```
+
+Check metallb controller logs that ip was assigned:
+```
+# k logs -f metallb-controller-8474b54bc4-sbr5h -n metallb
+{"caller":"service.go:180","event":"ipAllocated","ip":["158.160.61.136"],"level":"info","msg":"IP address assigned by controller","ts":"2025-02-27T07:52:56Z"}
+{"caller":"main.go:127","event":"serviceUpdated","level":"info","msg":"updated service object","ts":"2025-02-27T07:52:56Z"}
+{"caller":"service_controller_reload.go:119","controller":"ServiceReconciler - reprocessAll","end reconcile":"metallbreload/reload","level":"info","ts":"2025-02-27T07:52:56Z"}
+{"caller":"service_controller.go:64","controller":"ServiceReconciler","level":"info","start reconcile":"ingress-nginx/ingress-nginx-controller","ts":"2025-02-27T07:52:56Z"}
+{"caller":"main.go:127","event":"serviceUpdated","level":"info","msg":"updated service object","ts":"2025-02-27T07:52:56Z"}
+{"caller":"service_controller.go:115","controller":"ServiceReconciler","end reconcile":"ingress-nginx/ingress-nginx-controller","level":"info","ts":"2025-02-27T07:52:56Z"}
+```
+
+Check services:
+```
+# k get svc -A 
+NAMESPACE       NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                      AGE
+default         kubernetes                           ClusterIP      10.255.0.1      <none>           443/TCP                      32d
+home            http-server                          ClusterIP      10.255.36.158   <none>           8000/TCP                     5d20h
+ingress-nginx   ingress-nginx-controller             LoadBalancer   10.255.225.92   158.160.61.136   80:32646/TCP,443:31442/TCP   35m
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP      10.255.163.11   <none>           443/TCP                      35m
+kube-system     kube-dns                             ClusterIP      10.255.0.10     <none>           53/UDP,53/TCP,9153/TCP       32d
+metallb         metallb-webhook-service              ClusterIP      10.255.92.196   <none>           443/TCP                      17m
+```
+
+But trying to reach service on the external ip address with curl, does not work!
+This appears to be because metal lb added rules that work on destination_ip=158.160.61.136 packets.
+However in yandex cloud such packets never reach the machine, incoming packets are DNAT'ed and so destination ip
+becomes e.g. 10.x.x.x. Such packets do reach the machine, but they are not part of metallb address.
+
+It seems tempting to re-use an internal NodeIP as a metal-lb address, however nginx-ingress-controller docs warn against this:
+```
+This pool can be defined through IPAddressPool objects in the same namespace as the MetalLB controller. This pool of IPs must be dedicated to MetalLB's use, you can't reuse the Kubernetes node IPs or IPs handed out by a DHCP server
+```
+Which makes sense, because then traffic between nodes would get messed up. So it seems that everything would work if only traffic was not DNAT'ed,
+so if only `curl http://158.160.61.136/` would actually reach the node with destination_ip=158.160.61.136 and not destination_ip=10.128.0.16 as it is now.
 
 
 
