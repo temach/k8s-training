@@ -272,6 +272,70 @@ This behaviour is specific to nginx ingress controller.
 
 # Expose internet access
 
+see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
+see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+
+
+### Using MetalLB to provision loadbalancer
+
+see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
+
+For completenes current node ip addresses:
+
+```
+# yc compute instances list                                                           
++---------+---------+----------------+-------------+
+|  NAME   | STATUS  |  EXTERNAL IP   | INTERNAL IP |
++---------+---------+----------------+-------------+
+| master  | RUNNING | 158.160.61.136 | 10.128.0.16 |
+| worker1 | RUNNING | 158.160.36.172 | 10.128.0.25 |
+| worker2 | RUNNING | 158.160.33.91  | 10.128.0.26 |
+| worker3 | RUNNING | 158.160.40.157 | 10.128.0.3  |
++---------+---------+----------------+-------------+
+```
+
+Install metal-lb:
+
+```
+# helm repo add metallb https://metallb.github.io/metallb
+
+# helm install metallb metallb/metallb --namespace metallb --create-namespace
+
+# k get pods -A -o wide
+NAMESPACE       NAME                                       READY   STATUS    RESTARTS        AGE     IP            NODE      NOMINATED NODE   READINESS GATES
+home            http-server-56bb7f7b5b-njp4p               1/1     Running   3 (155m ago)    5d20h   10.244.3.23   worker2   <none>           <none>
+ingress-nginx   ingress-nginx-controller-cd9d6bbd7-5t7j5   1/1     Running   0               19m     10.244.2.26   worker3   <none>           <none>
+kube-flannel    kube-flannel-ds-b5gvw                      1/1     Running   13 (153m ago)   31d     10.128.0.25   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-lxtzt                      1/1     Running   12 (153m ago)   31d     10.128.0.3    worker3   <none>           <none>
+kube-flannel    kube-flannel-ds-vklr7                      1/1     Running   12 (155m ago)   31d     10.128.0.16   master    <none>           <none>
+kube-flannel    kube-flannel-ds-wjmtv                      1/1     Running   12 (153m ago)   31d     10.128.0.26   worker2   <none>           <none>
+kube-system     coredns-7c65d6cfc9-pk4xt                   1/1     Running   2 (155m ago)    35h     10.244.0.14   master    <none>           <none>
+kube-system     coredns-7c65d6cfc9-zc2sr                   1/1     Running   5 (155m ago)    7d5h    10.244.0.13   master    <none>           <none>
+kube-system     etcd-master                                1/1     Running   8 (155m ago)    31d     10.128.0.16   master    <none>           <none>
+kube-system     kube-apiserver-master                      1/1     Running   8 (155m ago)    31d     10.128.0.16   master    <none>           <none>
+kube-system     kube-controller-manager-master             1/1     Running   8 (155m ago)    31d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-6k7fg                           1/1     Running   8 (155m ago)    31d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-77njz                           1/1     Running   7 (155m ago)    31d     10.128.0.3    worker3   <none>           <none>
+kube-system     kube-proxy-d2nmb                           1/1     Running   7 (155m ago)    31d     10.128.0.26   worker2   <none>           <none>
+kube-system     kube-proxy-std4j                           1/1     Running   7 (155m ago)    31d     10.128.0.25   worker1   <none>           <none>
+kube-system     kube-scheduler-master                      1/1     Running   2 (155m ago)    34h     10.128.0.16   master    <none>           <none>
+metallb         metallb-controller-8474b54bc4-sbr5h        1/1     Running   0               38s     10.244.1.29   worker1   <none>           <none>
+metallb         metallb-speaker-66m82                      4/4     Running   0               38s     10.128.0.3    worker3   <none>           <none>
+metallb         metallb-speaker-bn2x2                      4/4     Running   0               38s     10.128.0.25   worker1   <none>           <none>
+metallb         metallb-speaker-qqllz                      4/4     Running   0               38s     10.128.0.26   worker2   <none>           <none>
+metallb         metallb-speaker-ss9hk                      4/4     Running   0               38s     10.128.0.16   master    <none>           <none>
+```
+
+
+
+
+
+
+
+### Trying to expose via external-ip did not work due to flannel's external-node-ip / internal-node-ip
+
+see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+
 For completenes current node ip addresses:
 ```
 $ yc compute instances list                                                         
@@ -285,45 +349,30 @@ $ yc compute instances list
 +---------+---------+-----------------+-------------+
 ```
 
-see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
-and see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
-
-
-### Using MetalLB to provision loadbalancer
-
-
-
-
-
-
-### Trying to expose via external-ip did not work due to flannel's external-node-ip / internal-node-ip
-
-see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
-
 Start by exposing just the http-server service and ignore nginx ingress controller for now.
 
 Apply the service-external-ip.yaml
 
 ```
 
-# k get svc -A -o wide
+# kubectl get svc -A -o wide
 NAMESPACE     NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE    SELECTOR
 default       kubernetes    ClusterIP   10.255.0.1      <none>        443/TCP                  31d    <none>
 home          http-server   ClusterIP   10.255.36.158   <none>        8000/TCP                 5d5h   app=http-server
 kube-system   kube-dns      ClusterIP   10.255.0.10     <none>        53/UDP,53/TCP,9153/TCP   31d    k8s-app=kube-dns
 
 
-# k apply -n home -f service-external-ip.yaml 
+# kubectl apply -n home -f service-external-ip.yaml 
 service/http-server-external-ip created
 
-# k get svc -A -o wide
+# kubectl get svc -A -o wide
 NAMESPACE     NAME                      TYPE        CLUSTER-IP      EXTERNAL-IP                                   PORT(S)                  AGE    SELECTOR
 default       kubernetes                ClusterIP   10.255.0.1      <none>                                        443/TCP                  31d    <none>
 home          http-server               ClusterIP   10.255.36.158   <none>                                        8000/TCP                 5d5h   app=http-server
 home          http-server-external-ip   ClusterIP   10.255.140.97   158.160.105.145,89.169.129.38,158.160.46.75   8000/TCP                 7s     app=http-server
 kube-system   kube-dns                  ClusterIP   10.255.0.10     <none>                                        53/UDP,53/TCP,9153/TCP   31d    k8s-app=kube-dns
 
-# k get pods -A -o wide
+# kubectl get pods -A -o wide
 NAMESPACE      NAME                             READY   STATUS    RESTARTS        AGE     IP            NODE      NOMINATED NODE   READINESS GATES
 home           http-server-56bb7f7b5b-njp4p     1/1     Running   2 (7h5m ago)    5d5h    10.244.3.20   worker2   <none>           <none>
 kube-flannel   kube-flannel-ds-b5gvw            1/1     Running   11 (7h4m ago)   30d     10.128.0.25   worker1   <none>           <none>
@@ -377,7 +426,7 @@ Checking the iptable rules, they exist and should work apparently (node ip=89.16
 
 What turned out to be the root cause is flannel, because it is using internal-node-ip for interfacing and routing:
 ```
-# k get nodes -o yaml | grep ip
+# kubectl get nodes -o yaml | grep ip
       flannel.alpha.coreos.com/public-ip: 10.128.0.16
       flannel.alpha.coreos.com/public-ip: 10.128.0.25
       flannel.alpha.coreos.com/public-ip: 10.128.0.26
