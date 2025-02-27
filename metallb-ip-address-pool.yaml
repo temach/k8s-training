@@ -1,0 +1,12 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default
+  namespace: metallb
+spec:
+  addresses:
+    - 158.160.61.136/32
+    - 158.160.36.172/32
+  # do not auto assign but use metallb.universe.tf/loadBalancerIPs annotation on service
+  # see: https://metallb.universe.tf/usage/
+  autoAssign: false
