@@ -276,7 +276,7 @@ see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
 see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
 
 
-### Using MetalLB to provision loadbalancer
+### Trying to expose via MetalLB to provision loadbalancer
 
 see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
 
@@ -328,7 +328,7 @@ metallb         metallb-speaker-ss9hk                      4/4     Running   0  
 
 Add ip address pool. Use the external ip given out to nodes. Looks like no adversiting is needed from MetalLB because these ip already lead to nodes.
 Actually when outside traffic hits the node network card, its already using 10.x.x.x as destination ip.
-Confirmed with tcpdump on master node (while client send `curl -vvv http://158.160.61.136:12345/` request):
+Confirmed with tcpdump on master node (while client sent `curl -vvv http://158.160.61.136:12345/` request):
 ```
 # sudo tcpdump -i any port 12345
 tcpdump: data link type LINUX_SLL2
@@ -408,7 +408,9 @@ so if only `curl http://158.160.61.136/` would actually reach the node with dest
 
 At this point lets try using a floating IPv4 address, buy one in cloud: 89.169.150.171
 
-Create metallb l2 advertisement:
+Recreate metallb address pool with this new address.
+
+Create metallb L2 advertisement:
 ```
 # k apply -n metallb -f metallb-l2-advertisement.yaml
 
@@ -482,9 +484,6 @@ This whole issue is due to one-to-one NAT in yc:
 
 Basically a VM gets a private ipv4 address, but all public access is done via one-to-one NAT.
 It seems impossible to directly access internet without this NAT.
-
-
-
 
 
 
@@ -580,7 +579,7 @@ Checking the iptable rules, they exist and should work apparently (node ip=89.16
 -A KUBE-SVC-MEREAWZIC2FTOY2S ! -s 10.244.0.0/16 -d 10.255.140.97/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp cluster IP" -j KUBE-MARK-MASQ
 ```
 
-What turned out to be the root cause is flannel, because it is using internal-node-ip for interfacing and routing:
+Looks like the root cause is flannel, because it is using internal-node-ip for interfacing and routing:
 ```
 # kubectl get nodes -o yaml | grep ip
       flannel.alpha.coreos.com/public-ip: 10.128.0.16
