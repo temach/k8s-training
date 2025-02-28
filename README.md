@@ -806,7 +806,9 @@ Looks like even raw commands to attach an interface can not avoid one-to-one NAT
 see:
 - https://yandex.cloud/ru/docs/cli/cli-ref/compute/cli-ref/instance/attach-network-interface
 - https://yandex.cloud/ru/docs/cli/cli-ref/compute/cli-ref/instance/add-one-to-one-nat
+- https://yandex.cloud/ru/docs/compute/operations/vm-control/attach-network-interface
 
 Considered using cloud loadbalancer as entry point, but it will have the same problem: https://yandex.cloud/ru/docs/network-load-balancer/concepts/specifics#nlb-flows
 
-In Yandex Cloud Managed Kubernetes this seems to be sidestepped by using NodePort type services and YC Loadbalancer forwarding traffic to them.
+In Yandex Cloud Managed Kubernetes this is solved since YC Loadbalancer forwards traffic to "nodePort" in service 
+and the "managed" part of YC Kubernetes keeping the YC Loadbalancer info up to date.
