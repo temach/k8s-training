@@ -15,12 +15,16 @@
 
 controller:
   service:
-    type: NodePort
-    externalTrafficPolicy: ""
+    type: ClusterIP
+    externalTrafficPolicy: "Cluster"
     externalIPs:
-      - 158.160.105.145  # worker1 
-      - 89.169.129.38    # worker2 
-      - 158.160.46.75    # worker3 
-      # - 158.160.41.22    # master is excluded 
-  publishService:
-    enabled: false
+      - 10.128.0.25
+      - 10.128.0.16
+      - 10.128.0.26
+      - 10.128.0.3 
+      # - 158.160.105.145  # worker1 
+      # - 89.169.129.38    # worker2 
+      # - 158.160.46.75    # worker3 
+      # # - 158.160.41.22    # master is excluded 
+# publishService:
+#   enabled: false
