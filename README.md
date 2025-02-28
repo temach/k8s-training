@@ -277,9 +277,7 @@ see: https://kubernetes.io/docs/concepts/services-networking/service/#external-i
 
 
 
-
 ### Expose nginx-ingress-controller service via ExternalIP (easy but drawback: source-ip is lost)
-
 
 see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
 
@@ -454,7 +452,7 @@ kube-system     kube-scheduler-master                      1/1     Running   3 (
 
 ```
 
-Testing with curl it works (in case of error, its the error from python simple server that is returned, nginx is avoided):
+Testing with curl it works! (in case of error, its the error from python simple server that is returned, nginx is avoided):
 ```
 # curl -v --connect-to 'homework.otus:80:158.160.36.172:80' 'http://homework.otus/'     
 * Connecting to hostname: 158.160.36.172
@@ -532,11 +530,14 @@ Defaulted container "server-container" out of: server-container, generate-index 
 ```
 
 
+# Other failed attempts to expose services to internet
 
-### Another approach with using public-ips for external-ip that fails due to flannel discrepancy between public/internal node IPs
 
+### Another approach with using public-ips for external-ip
 
-At this point everything is set-up to work, however curl still fails:
+Basically try to use a public ip e.g. 89.169.129.38 instead of node's internal 10.x.x.x ip as service's ExternalIP.
+
+Recreate service-external-ip.yaml with this modification, everything is set-up to work, however curl still fails:
 ```
 $ curl -v --connect-to 'homework.otus:8000:89.169.129.38:8000' 'http://homework.otus:8000/xxxx'
 * Connecting to hostname: 89.169.129.38
@@ -558,6 +559,12 @@ listening on any, link-type LINUX_SLL2 (Linux cooked v2), snapshot length 262144
 16:41:56.718147 eth0  Out IP worker2.ru-central1.internal.8000 > 79.134.37.172.58464: Flags [R.], seq 0, ack 4220012834, win 0, length 0
 ```
 
+So the traffic that reaches node has destination_ip=worker2.ru-central1.internal which is 10.128.0.26 and which does not have iptable rule matches.
+(This is better shown in metallb attempt below).
+```
+# iptables-save | grep 10.128.0.26
+```
+
 Checking the iptable rules, they exist and should work apparently (node ip=89.169.129.38, virtual service ip=10.255.140.97):
 ```
 # sudo iptables-save | grep 89.169.129.38
@@ -569,7 +576,7 @@ Checking the iptable rules, they exist and should work apparently (node ip=89.16
 -A KUBE-SVC-MEREAWZIC2FTOY2S ! -s 10.244.0.0/16 -d 10.255.140.97/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp cluster IP" -j KUBE-MARK-MASQ
 ```
 
-Looks like the root cause is flannel, because it is using internal-node-ip for interfacing and routing:
+For a while it appeared as flannel was at fault because it is using internal-node-ip for interfacing and routing:
 ```
 # kubectl get nodes -o yaml | grep ip
       flannel.alpha.coreos.com/public-ip: 10.128.0.16
@@ -578,9 +585,12 @@ Looks like the root cause is flannel, because it is using internal-node-ip for i
       flannel.alpha.coreos.com/public-ip: 10.128.0.3
 ```
 
-So it does not know how to route external ip addresses.
+So maybe it did not know how to route external ip addresses.
 See: https://github.com/k3s-io/k3s/issues/6177
 See: --flannel-external-ip at https://docs.k3s.io/networking/basic-network-options
+
+However ultimately its the problem of one-to-one NAT of yandex cloud.
+As packets with destination_ip=89.169.128.38 never actually arrive at the VM.
 
 
 
@@ -792,8 +802,11 @@ This whole issue is due to one-to-one NAT in yc:
 
 Basically a VM gets a private ipv4 address, but all public access is done via one-to-one NAT.
 It seems impossible to directly access internet without this NAT.
+Looks like even raw commands to attach an interface can not avoid one-to-one NAT, as you can not specify to attach a public ip address directly.
+see:
+- https://yandex.cloud/ru/docs/cli/cli-ref/compute/cli-ref/instance/attach-network-interface
+- https://yandex.cloud/ru/docs/cli/cli-ref/compute/cli-ref/instance/add-one-to-one-nat
 
-Considered using cloud loadbalancer as entry point, but seems it has the same problem: https://yandex.cloud/ru/docs/network-load-balancer/concepts/specifics#nlb-flows
+Considered using cloud loadbalancer as entry point, but it will have the same problem: https://yandex.cloud/ru/docs/network-load-balancer/concepts/specifics#nlb-flows
 
-Its not clear how this is sidestepped in Yandex Cloud Managed Kubernetes service which is also loadbalancers pointing to VMs, but maybe with some special integrations.
-
+In Yandex Cloud Managed Kubernetes this seems to be sidestepped by using NodePort type services and YC Loadbalancer forwarding traffic to them.
