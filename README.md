@@ -265,7 +265,7 @@ All is per requirements, unfortunatelly there are still some problems left:
 
 - because of that, requesting /index.xxxxx is valid
 
-- /homepage is matched in Prefix manner, so requesting /hostnamexxxxxx is also valid
+- /homepage is matched in Prefix manner, so requesting /homepagexxxxxx is also valid
 
 This behaviour is specific to nginx ingress controller.
 
