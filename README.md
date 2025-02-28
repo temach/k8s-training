@@ -276,6 +276,314 @@ see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
 see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
 
 
+
+
+### Expose nginx-ingress-controller service via ExternalIP (easy but drawback: source-ip is lost)
+
+
+see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+
+Exposing services this way provides no loadbalancing, no healthchecks and source-ip is always lost (changed to node ip that accepted the request)
+
+For completenes current node ip addresses:
+```
+$ yc compute instances list                                   
++---------+---------+----------------+-------------+
+|  NAME   | STATUS  |  EXTERNAL IP   | INTERNAL IP |
++---------+---------+----------------+-------------+
+| master  | RUNNING | 158.160.61.136 | 10.128.0.16 |
+| worker1 | RUNNING | 158.160.36.172 | 10.128.0.25 |
+| worker2 | RUNNING | 51.250.67.110  | 10.128.0.26 |
+| worker3 | RUNNING | 89.169.150.7   | 10.128.0.3  |
++---------+---------+----------------+-------------+
+```
+
+Must use INTERNAL-IP instead of EXTERNAL-IP due to one-to-one NAT on yandex cloud.
+The VM only sees 10.x.x.x ip on its interface, all traffic incoming to public ip is DNAT'ed: 
+if destination_ip=158.160.61.136 then its changed to destination_ip=10.128.0.16 by yc network configuration before it arrives at VM.
+
+In yc VMs work as if they have NLB in front of them doing the one-to-one NAT, see diagram and how IP address changes:
+https://yandex.cloud/ru/docs/network-load-balancer/concepts/specifics#nlb-flows
+
+Also see about public ips: https://yandex.cloud/en/docs/vpc/concepts/address#public-addresses
+
+
+
+Choose the internal-ip address of lets say master: 10.128.0.16
+Edit nginx ingress controller helm chart value to use this as external-ip and re-install chart:
+
+```
+# helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --values ./values-ingress-nginx-controller-with-external-ip.yaml
+```
+
+Verify that ip was assigned:
+```
+# k get svc -A 
+NAMESPACE       NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+default         kubernetes                           ClusterIP   10.255.0.1       <none>        443/TCP                  33d
+home            http-server                          ClusterIP   10.255.36.158    <none>        8000/TCP                 7d7h
+ingress-nginx   ingress-nginx-controller             ClusterIP   10.255.10.67     10.128.0.16   80/TCP,443/TCP           38s
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP   10.255.233.197   <none>        443/TCP                  38s
+kube-system     kube-dns                             ClusterIP   10.255.0.10      <none>        53/UDP,53/TCP,9153/TCP   33d
+
+
+# k get pods -A -o wide
+NAMESPACE       NAME                                       READY   STATUS    RESTARTS         AGE     IP            NODE      NOMINATED NODE   READINESS GATES
+home            http-server-56bb7f7b5b-rbvk2               1/1     Running   0                4h16m   10.244.1.33   worker1   <none>           <none>
+ingress-nginx   ingress-nginx-controller-cd9d6bbd7-df6w5   1/1     Running   0                17m     10.244.1.41   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-b5gvw                      1/1     Running   17 (4h23m ago)   32d     10.128.0.25   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-lxtzt                      1/1     Running   14 (99s ago)     32d     10.128.0.3    worker3   <none>           <none>
+kube-flannel    kube-flannel-ds-vklr7                      1/1     Running   13 (4h23m ago)   33d     10.128.0.16   master    <none>           <none>
+kube-flannel    kube-flannel-ds-wjmtv                      1/1     Running   14 (100s ago)    32d     10.128.0.26   worker2   <none>           <none>
+kube-system     coredns-7c65d6cfc9-pk4xt                   1/1     Running   3 (4h23m ago)    2d22h   10.244.0.16   master    <none>           <none>
+kube-system     coredns-7c65d6cfc9-tschc                   1/1     Running   0                32s     10.244.2.27   worker3   <none>           <none>
+kube-system     etcd-master                                1/1     Running   9 (4h23m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-apiserver-master                      1/1     Running   9 (4h23m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-controller-manager-master             1/1     Running   9 (4h23m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-6k7fg                           1/1     Running   9 (4h23m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-77njz                           1/1     Running   8 (2m33s ago)    32d     10.128.0.3    worker3   <none>           <none>
+kube-system     kube-proxy-d2nmb                           1/1     Running   8 (2m34s ago)    32d     10.128.0.26   worker2   <none>           <none>
+kube-system     kube-proxy-std4j                           1/1     Running   10 (4h23m ago)   32d     10.128.0.25   worker1   <none>           <none>
+kube-system     kube-scheduler-master                      1/1     Running   3 (4h23m ago)    2d22h   10.128.0.16   master    <none>           <none>
+```
+
+Try to reach that ip from local machine (targeting master public ip 158.160.61.136, which will reach master internal ip 10.128.0.16):
+```
+$ curl -v --connect-to 'homework.otus:80:158.160.61.136:80' 'http://homework.otus/index.html'
+* Connecting to hostname: 158.160.61.136
+* Connecting to port: 80
+*   Trying 158.160.61.136:80...
+* Connected to 158.160.61.136 (158.160.61.136) port 80
+* using HTTP/1.x
+> GET /index.html HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Date: Fri, 28 Feb 2025 19:24:26 GMT
+< Content-Type: text/html
+< Content-Length: 34
+< Connection: keep-alive
+< Last-Modified: Fri, 28 Feb 2025 15:05:47 GMT
+< 
+<html><p>Hellow world!</p></html>
+* Connection #0 to host 158.160.61.136 left intact
+
+$ curl -v --connect-to 'homework.otus:80:158.160.61.136:80' 'http://homework.otus/xxxx'
+* Connecting to hostname: 158.160.61.136
+* Connecting to port: 80
+*   Trying 158.160.61.136:80...
+* Connected to 158.160.61.136 (158.160.61.136) port 80
+* using HTTP/1.x
+> GET /xxxx HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 404 Not Found
+< Date: Fri, 28 Feb 2025 19:24:19 GMT
+< Content-Type: text/html
+< Content-Length: 146
+< Connection: keep-alive
+< 
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx</center>
+</body>
+</html>
+* Connection #0 to host 158.160.61.136 left intact
+```
+
+Trying public ip of another node will not work:
+```
+# curl --connect-to 'homework.otus:80:158.160.36.172:80' 'http://homework.otus/index.html' 
+curl: (7) Failed to connect to 158.160.36.172 port 80 after 67 ms: Could not connect to server
+```
+
+
+##### Expose the http-service without using nginx-ingress-controller directly via another external-ip
+
+Apply the service-external-ip.yaml, which uses a different node ip as external, but also uses port 80 like nginx-ingress-controller.
+
+```
+# k get svc -A
+NAMESPACE       NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+default         kubernetes                           ClusterIP   10.255.0.1       <none>        443/TCP                  33d
+home            http-server                          ClusterIP   10.255.36.158    <none>        8000/TCP                 7d8h
+ingress-nginx   ingress-nginx-controller             ClusterIP   10.255.10.67     10.128.0.16   80/TCP,443/TCP           28m
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP   10.255.233.197   <none>        443/TCP                  28m
+kube-system     kube-dns                             ClusterIP   10.255.0.10      <none>        53/UDP,53/TCP,9153/TCP   33d
+
+
+# k apply -n home -f service-external-ip.yaml 
+service/http-server-external-ip created
+
+# k get svc -A
+NAMESPACE       NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+default         kubernetes                           ClusterIP   10.255.0.1       <none>        443/TCP                  33d
+home            http-server                          ClusterIP   10.255.36.158    <none>        8000/TCP                 7d8h
+home            http-server-external-ip              ClusterIP   10.255.8.50      10.128.0.25   80/TCP                   4s
+ingress-nginx   ingress-nginx-controller             ClusterIP   10.255.10.67     10.128.0.16   80/TCP,443/TCP           28m
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP   10.255.233.197   <none>        443/TCP                  28m
+kube-system     kube-dns                             ClusterIP   10.255.0.10      <none>        53/UDP,53/TCP,9153/TCP   33d
+
+
+# k get pods -A -o wide
+NAMESPACE       NAME                                       READY   STATUS    RESTARTS         AGE     IP            NODE      NOMINATED NODE   READINESS GATES
+home            http-server-56bb7f7b5b-rbvk2               1/1     Running   0                4h28m   10.244.1.33   worker1   <none>           <none>
+ingress-nginx   ingress-nginx-controller-cd9d6bbd7-df6w5   1/1     Running   0                29m     10.244.1.41   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-b5gvw                      1/1     Running   17 (4h35m ago)   32d     10.128.0.25   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-lxtzt                      1/1     Running   14 (13m ago)     32d     10.128.0.3    worker3   <none>           <none>
+kube-flannel    kube-flannel-ds-vklr7                      1/1     Running   13 (4h35m ago)   33d     10.128.0.16   master    <none>           <none>
+kube-flannel    kube-flannel-ds-wjmtv                      1/1     Running   14 (13m ago)     32d     10.128.0.26   worker2   <none>           <none>
+kube-system     coredns-7c65d6cfc9-pk4xt                   1/1     Running   3 (4h35m ago)    2d23h   10.244.0.16   master    <none>           <none>
+kube-system     coredns-7c65d6cfc9-tschc                   1/1     Running   0                12m     10.244.2.27   worker3   <none>           <none>
+kube-system     etcd-master                                1/1     Running   9 (4h35m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-apiserver-master                      1/1     Running   9 (4h35m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-controller-manager-master             1/1     Running   9 (4h35m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-6k7fg                           1/1     Running   9 (4h35m ago)    32d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-77njz                           1/1     Running   8 (14m ago)      32d     10.128.0.3    worker3   <none>           <none>
+kube-system     kube-proxy-d2nmb                           1/1     Running   8 (14m ago)      32d     10.128.0.26   worker2   <none>           <none>
+kube-system     kube-proxy-std4j                           1/1     Running   10 (4h35m ago)   32d     10.128.0.25   worker1   <none>           <none>
+kube-system     kube-scheduler-master                      1/1     Running   3 (4h35m ago)    2d22h   10.128.0.16   master    <none>           <none>
+
+```
+
+Testing with curl it works (in case of error, its the error from python simple server that is returned, nginx is avoided):
+```
+# curl -v --connect-to 'homework.otus:80:158.160.36.172:80' 'http://homework.otus/'     
+* Connecting to hostname: 158.160.36.172
+* Connecting to port: 80
+*   Trying 158.160.36.172:80...
+* Connected to 158.160.36.172 (158.160.36.172) port 80
+* using HTTP/1.x
+> GET / HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Server: SimpleHTTP/0.6 Python/3.13.2
+< Date: Fri, 28 Feb 2025 19:39:12 GMT
+< Content-type: text/html
+< Content-Length: 34
+< Last-Modified: Fri, 28 Feb 2025 15:05:47 GMT
+< 
+<html><p>Hellow world!</p></html>
+* shutting down connection #0
+
+
+# curl -v --connect-to 'homework.otus:80:158.160.36.172:80' 'http://homework.otus/xxxx'
+* Connecting to hostname: 158.160.36.172
+* Connecting to port: 80
+*   Trying 158.160.36.172:80...
+* Connected to 158.160.36.172 (158.160.36.172) port 80
+* using HTTP/1.x
+> GET /xxxx HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+* HTTP 1.0, assume close after body
+< HTTP/1.0 404 File not found
+< Server: SimpleHTTP/0.6 Python/3.13.2
+< Date: Fri, 28 Feb 2025 19:37:56 GMT
+< Connection: close
+< Content-Type: text/html;charset=utf-8
+< Content-Length: 335
+< 
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Error response</title>
+    </head>
+    <body>
+        <h1>Error response</h1>
+        <p>Error code: 404</p>
+        <p>Message: File not found.</p>
+        <p>Error code explanation: 404 - Nothing matches the given URI.</p>
+    </body>
+</html>
+* shutting down connection #0
+```
+
+
+Logs from python server all look as follows:
+```
+# k logs -n home http-server-56bb7f7b5b-rbvk2
+Defaulted container "server-container" out of: server-container, generate-index (init)
+10.244.1.36 - - [28/Feb/2025 18:18:40] "GET /index.html HTTP/1.1" 200 -
+10.244.1.36 - - [28/Feb/2025 18:19:20] "GET /index.html HTTP/1.1" 200 -
+10.244.1.36 - - [28/Feb/2025 18:53:51] "GET /index.html HTTP/1.1" 200 -
+10.244.1.41 - - [28/Feb/2025 19:24:26] "GET /index.html HTTP/1.1" 200 -
+10.244.1.1 - - [28/Feb/2025 19:37:56] code 404, message File not found
+10.244.1.1 - - [28/Feb/2025 19:37:56] "GET /xxxx HTTP/1.1" 404 -
+10.244.1.1 - - [28/Feb/2025 19:39:12] "GET / HTTP/1.1" 200 -
+10.244.1.1 - - [28/Feb/2025 19:40:26] "GET / HTTP/1.1" 200 -
+```
+
+
+
+### Another approach with using public-ips for external-ip that fails due to flannel discrepancy between public/internal node IPs
+
+
+At this point everything is set-up to work, however curl still fails:
+```
+$ curl -v --connect-to 'homework.otus:8000:89.169.129.38:8000' 'http://homework.otus:8000/xxxx'
+* Connecting to hostname: 89.169.129.38
+* Connecting to port: 8000
+*   Trying 89.169.129.38:8000...
+* connect to 89.169.129.38 port 8000 from 192.168.0.136 port 36964 failed: Connection refused
+* Failed to connect to 89.169.129.38 port 8000 after 64 ms: Could not connect to server
+* closing connection #0
+curl: (7) Failed to connect to 89.169.129.38 port 8000 after 64 ms: Could not connect to server
+```
+
+Checking the tcpdump on the worker2 node, traffic reaches the node but is immediately [R.] i.e. connection is reset:
+```
+root@worker2# sudo tcpdump -i any port 8000
+tcpdump: data link type LINUX_SLL2
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on any, link-type LINUX_SLL2 (Linux cooked v2), snapshot length 262144 bytes
+16:41:56.718089 eth0  In  IP 79.134.37.172.58464 > worker2.ru-central1.internal.8000: Flags [S], seq 4220012833, win 64240, options [mss 1460,sackOK,TS val 75387961 ecr 0,nop,wscale 7], length 0
+16:41:56.718147 eth0  Out IP worker2.ru-central1.internal.8000 > 79.134.37.172.58464: Flags [R.], seq 0, ack 4220012834, win 0, length 0
+```
+
+Checking the iptable rules, they exist and should work apparently (node ip=89.169.129.38, virtual service ip=10.255.140.97):
+```
+# sudo iptables-save | grep 89.169.129.38
+-A KUBE-SERVICES -d 89.169.129.38/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp external IP" -j KUBE-EXT-MEREAWZIC2FTOY2S
+
+
+# sudo iptables-save | grep 10.255.140.97
+-A KUBE-SERVICES -d 10.255.140.97/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp cluster IP" -j KUBE-SVC-MEREAWZIC2FTOY2S
+-A KUBE-SVC-MEREAWZIC2FTOY2S ! -s 10.244.0.0/16 -d 10.255.140.97/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp cluster IP" -j KUBE-MARK-MASQ
+```
+
+Looks like the root cause is flannel, because it is using internal-node-ip for interfacing and routing:
+```
+# kubectl get nodes -o yaml | grep ip
+      flannel.alpha.coreos.com/public-ip: 10.128.0.16
+      flannel.alpha.coreos.com/public-ip: 10.128.0.25
+      flannel.alpha.coreos.com/public-ip: 10.128.0.26
+      flannel.alpha.coreos.com/public-ip: 10.128.0.3
+```
+
+So it does not know how to route external ip addresses.
+See: https://github.com/k3s-io/k3s/issues/6177
+See: --flannel-external-ip at https://docs.k3s.io/networking/basic-network-options
+
+
+
 ### Trying to expose via MetalLB to provision loadbalancer
 
 see: https://kubernetes.github.io/ingress-nginx/deploy/baremetal/
@@ -485,111 +793,7 @@ This whole issue is due to one-to-one NAT in yc:
 Basically a VM gets a private ipv4 address, but all public access is done via one-to-one NAT.
 It seems impossible to directly access internet without this NAT.
 
+Considered using cloud loadbalancer as entry point, but seems it has the same problem: https://yandex.cloud/ru/docs/network-load-balancer/concepts/specifics#nlb-flows
 
-
-### Trying to expose via external-ip did not work due to flannel's external-node-ip / internal-node-ip
-
-see: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
-
-For completenes current node ip addresses:
-```
-$ yc compute instances list                                                         
-+---------+---------+-----------------+-------------+
-|  NAME   | STATUS  |   EXTERNAL IP   | INTERNAL IP |
-+---------+---------+-----------------+-------------+
-| master  | RUNNING | 158.160.41.22   | 10.128.0.16 |
-| worker1 | RUNNING | 158.160.105.145 | 10.128.0.25 |
-| worker2 | RUNNING | 89.169.129.38   | 10.128.0.26 |
-| worker3 | RUNNING | 158.160.46.75   | 10.128.0.3  |
-+---------+---------+-----------------+-------------+
-```
-
-Start by exposing just the http-server service and ignore nginx ingress controller for now.
-
-Apply the service-external-ip.yaml
-
-```
-
-# kubectl get svc -A -o wide
-NAMESPACE     NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE    SELECTOR
-default       kubernetes    ClusterIP   10.255.0.1      <none>        443/TCP                  31d    <none>
-home          http-server   ClusterIP   10.255.36.158   <none>        8000/TCP                 5d5h   app=http-server
-kube-system   kube-dns      ClusterIP   10.255.0.10     <none>        53/UDP,53/TCP,9153/TCP   31d    k8s-app=kube-dns
-
-
-# kubectl apply -n home -f service-external-ip.yaml 
-service/http-server-external-ip created
-
-# kubectl get svc -A -o wide
-NAMESPACE     NAME                      TYPE        CLUSTER-IP      EXTERNAL-IP                                   PORT(S)                  AGE    SELECTOR
-default       kubernetes                ClusterIP   10.255.0.1      <none>                                        443/TCP                  31d    <none>
-home          http-server               ClusterIP   10.255.36.158   <none>                                        8000/TCP                 5d5h   app=http-server
-home          http-server-external-ip   ClusterIP   10.255.140.97   158.160.105.145,89.169.129.38,158.160.46.75   8000/TCP                 7s     app=http-server
-kube-system   kube-dns                  ClusterIP   10.255.0.10     <none>                                        53/UDP,53/TCP,9153/TCP   31d    k8s-app=kube-dns
-
-# kubectl get pods -A -o wide
-NAMESPACE      NAME                             READY   STATUS    RESTARTS        AGE     IP            NODE      NOMINATED NODE   READINESS GATES
-home           http-server-56bb7f7b5b-njp4p     1/1     Running   2 (7h5m ago)    5d5h    10.244.3.20   worker2   <none>           <none>
-kube-flannel   kube-flannel-ds-b5gvw            1/1     Running   11 (7h4m ago)   30d     10.128.0.25   worker1   <none>           <none>
-kube-flannel   kube-flannel-ds-lxtzt            1/1     Running   10 (7h5m ago)   30d     10.128.0.3    worker3   <none>           <none>
-kube-flannel   kube-flannel-ds-vklr7            1/1     Running   11 (7h5m ago)   31d     10.128.0.16   master    <none>           <none>
-kube-flannel   kube-flannel-ds-wjmtv            1/1     Running   10 (7h3m ago)   30d     10.128.0.26   worker2   <none>           <none>
-kube-system    coredns-7c65d6cfc9-pk4xt         1/1     Running   1 (7h5m ago)    19h     10.244.0.12   master    <none>           <none>
-kube-system    coredns-7c65d6cfc9-zc2sr         1/1     Running   4 (7h5m ago)    6d14h   10.244.0.11   master    <none>           <none>
-kube-system    etcd-master                      1/1     Running   7 (7h5m ago)    30d     10.128.0.16   master    <none>           <none>
-kube-system    kube-apiserver-master            1/1     Running   7 (7h5m ago)    30d     10.128.0.16   master    <none>           <none>
-kube-system    kube-controller-manager-master   1/1     Running   7 (7h5m ago)    30d     10.128.0.16   master    <none>           <none>
-kube-system    kube-proxy-6k7fg                 1/1     Running   7 (18h ago)     30d     10.128.0.16   master    <none>           <none>
-kube-system    kube-proxy-77njz                 1/1     Running   6 (7h5m ago)    30d     10.128.0.3    worker3   <none>           <none>
-kube-system    kube-proxy-d2nmb                 1/1     Running   6 (7h5m ago)    30d     10.128.0.26   worker2   <none>           <none>
-kube-system    kube-proxy-std4j                 1/1     Running   6 (7h4m ago)    30d     10.128.0.25   worker1   <none>           <none>
-kube-system    kube-scheduler-master            1/1     Running   1 (18h ago)     19h     10.128.0.16   master    <none>           <none>
-```
-
-At this point everything is set-up to work, however curl still fails:
-```
-$ curl -v --connect-to 'homework.otus:8000:89.169.129.38:8000' 'http://homework.otus:8000/xxxx'
-* Connecting to hostname: 89.169.129.38
-* Connecting to port: 8000
-*   Trying 89.169.129.38:8000...
-* connect to 89.169.129.38 port 8000 from 192.168.0.136 port 36964 failed: Connection refused
-* Failed to connect to 89.169.129.38 port 8000 after 64 ms: Could not connect to server
-* closing connection #0
-curl: (7) Failed to connect to 89.169.129.38 port 8000 after 64 ms: Could not connect to server
-```
-
-Checking the tcpdump on the worker2 node, traffic reaches the node but is immediately [R.] i.e. connection is reset:
-```
-root@worker2# sudo tcpdump -i any port 8000
-tcpdump: data link type LINUX_SLL2
-tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
-listening on any, link-type LINUX_SLL2 (Linux cooked v2), snapshot length 262144 bytes
-16:41:56.718089 eth0  In  IP 79.134.37.172.58464 > worker2.ru-central1.internal.8000: Flags [S], seq 4220012833, win 64240, options [mss 1460,sackOK,TS val 75387961 ecr 0,nop,wscale 7], length 0
-16:41:56.718147 eth0  Out IP worker2.ru-central1.internal.8000 > 79.134.37.172.58464: Flags [R.], seq 0, ack 4220012834, win 0, length 0
-```
-
-Checking the iptable rules, they exist and should work apparently (node ip=89.169.129.38, virtual service ip=10.255.140.97):
-```
-# sudo iptables-save | grep 89.169.129.38
--A KUBE-SERVICES -d 89.169.129.38/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp external IP" -j KUBE-EXT-MEREAWZIC2FTOY2S
-
-
-# sudo iptables-save | grep 10.255.140.97
--A KUBE-SERVICES -d 10.255.140.97/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp cluster IP" -j KUBE-SVC-MEREAWZIC2FTOY2S
--A KUBE-SVC-MEREAWZIC2FTOY2S ! -s 10.244.0.0/16 -d 10.255.140.97/32 -p tcp -m comment --comment "home/http-server-external-ip:mainhttp cluster IP" -j KUBE-MARK-MASQ
-```
-
-Looks like the root cause is flannel, because it is using internal-node-ip for interfacing and routing:
-```
-# kubectl get nodes -o yaml | grep ip
-      flannel.alpha.coreos.com/public-ip: 10.128.0.16
-      flannel.alpha.coreos.com/public-ip: 10.128.0.25
-      flannel.alpha.coreos.com/public-ip: 10.128.0.26
-      flannel.alpha.coreos.com/public-ip: 10.128.0.3
-```
-
-So it does not know how to route external ip addresses.
-See: https://github.com/k3s-io/k3s/issues/6177
-See: --flannel-external-ip at https://docs.k3s.io/networking/basic-network-options
-
+Its not clear how this is sidestepped in Yandex Cloud Managed Kubernetes service which is also loadbalancers pointing to VMs, but maybe with some special integrations.
 
