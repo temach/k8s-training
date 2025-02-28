@@ -4,14 +4,25 @@ metadata:
   name: http-server-external-ip
 spec:
   externalIPs:
+    # $ yc compute instances list
+    # +---------+----------------+-------------+
+    # |  NAME   |  EXTERNAL IP   | INTERNAL IP |
+    # +---------+----------------+-------------+
+    # | master  | 158.160.61.136 | 10.128.0.16 |
+    # | worker1 | 158.160.36.172 | 10.128.0.25 |
+    # | worker2 |                | 10.128.0.26 |
+    # | worker3 |                | 10.128.0.3  |
+    # +---------+----------------+-------------+
+    # - 10.128.0.16        # master
+    - 10.128.0.25        # worker1
+    # - 10.128.0.26        # worker2
+    # - 10.128.0.3         # worker3
     # - 158.160.41.22    # master is excluded 
-    - 158.160.105.145  # worker1 
-    - 89.169.129.38    # worker2 
-    - 158.160.46.75    # worker3 
   type: ClusterIP
   selector:
     app: http-server
   ports:
     - protocol: TCP
       name: mainhttp
-      port: 8000
+      port: 80
+      targetPort: 8000
