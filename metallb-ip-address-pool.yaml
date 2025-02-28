@@ -5,9 +5,20 @@ metadata:
   namespace: metallb
 spec:
   addresses:
+    # $ yc compute instances list
+    # +---------+----------------+-------------+
+    # |  NAME   |  EXTERNAL IP   | INTERNAL IP |
+    # +---------+----------------+-------------+
+    # | master  | 158.160.61.136 | 10.128.0.16 |
+    # | worker1 | 158.160.36.172 | 10.128.0.25 |
+    # | worker2 |                | 10.128.0.26 |
+    # | worker3 |                | 10.128.0.3  |
+    # +---------+----------------+-------------+
+    - 89.169.150.171/32 # reserved floating
     - 158.160.61.136/32 # master
     - 158.160.36.172/32 # worker1
-    - 89.169.150.171/32 # reserved floating
+    - 10.128.0.16       # master internal
+    - 10.128.0.25       # worker1 internal
   # without auto assign must use metallb.universe.tf/loadBalancerIPs annotation on service
   # see: https://metallb.universe.tf/usage/
   autoAssign: true
