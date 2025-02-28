@@ -18,13 +18,16 @@ controller:
     type: ClusterIP
     externalTrafficPolicy: "Cluster"
     externalIPs:
-      - 10.128.0.25
-      - 10.128.0.16
-      - 10.128.0.26
-      - 10.128.0.3 
-      # - 158.160.105.145  # worker1 
-      # - 89.169.129.38    # worker2 
-      # - 158.160.46.75    # worker3 
-      # # - 158.160.41.22    # master is excluded 
-# publishService:
-#   enabled: false
+      # $ yc compute instances list
+      # +---------+----------------+-------------+
+      # |  NAME   |  EXTERNAL IP   | INTERNAL IP |
+      # +---------+----------------+-------------+
+      # | master  | 158.160.61.136 | 10.128.0.16 |
+      # | worker1 | 158.160.36.172 | 10.128.0.25 |
+      # | worker2 |                | 10.128.0.26 |
+      # | worker3 |                | 10.128.0.3  |
+      # +---------+----------------+-------------+
+      - 10.128.0.16        # master
+      - 10.128.0.25        # worker1
+      - 10.128.0.26        # worker2
+      - 10.128.0.3         # worker3
