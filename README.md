@@ -404,7 +404,7 @@ curl: (7) Failed to connect to 158.160.36.172 port 80 after 67 ms: Could not con
 ```
 
 
-##### Expose the http-service without using nginx-ingress-controller directly via another external-ip
+##### Expose the http-service without using nginx-ingress-controller directly via another external-ip (easy but drawback: source-ip is lost)
 
 Apply the service-external-ip.yaml, which uses a different node ip as external, but also uses port 80 like nginx-ingress-controller.
 
