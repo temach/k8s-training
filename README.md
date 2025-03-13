@@ -529,9 +529,75 @@ Defaulted container "server-container" out of: server-container, generate-index 
 10.244.1.1 - - [28/Feb/2025 19:40:26] "GET / HTTP/1.1" 200 -
 ```
 
+# kube-proxy "mode: iptables" and random load balancing
+
+for slightly dated theory see: https://netdevconf.info/1.1/proceedings/papers/Load-balancing-with-nftables.pdf
+
+Created 4 replicas of simple http-server:
+```
+root@master:~# k get pods -A -o wide
+NAMESPACE       NAME                                       READY   STATUS    RESTARTS       AGE   IP            NODE      NOMINATED NODE   READINESS GATES
+home            http-server-56bb7f7b5b-6hnnf               1/1     Running   2 (32m ago)    8h    10.244.1.70   worker1   <none>           <none>
+home            http-server-56bb7f7b5b-b4rm5               1/1     Running   2 (32m ago)    8h    10.244.1.67   worker1   <none>           <none>
+home            http-server-56bb7f7b5b-f2btm               1/1     Running   2 (32m ago)    8h    10.244.1.68   worker1   <none>           <none>
+home            http-server-56bb7f7b5b-rbvk2               1/1     Running   5 (32m ago)    13d   10.244.1.65   worker1   <none>           <none>
+ingress-nginx   ingress-nginx-controller-cd9d6bbd7-df6w5   1/1     Running   7 (29m ago)    13d   10.244.1.66   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-b5gvw                      1/1     Running   22 (32m ago)   46d   10.128.0.25   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-vklr7                      1/1     Running   19 (30m ago)   46d   10.128.0.16   master    <none>           <none>
+kube-system     coredns-7c65d6cfc9-8t6pl                   1/1     Running   4 (32m ago)    20h   10.244.1.69   worker1   <none>           <none>
+kube-system     coredns-7c65d6cfc9-pk4xt                   1/1     Running   8 (30m ago)    16d   10.244.0.21   master    <none>           <none>
+kube-system     etcd-master                                1/1     Running   14 (30m ago)   45d   10.128.0.16   master    <none>           <none>
+kube-system     kube-apiserver-master                      1/1     Running   14 (30m ago)   45d   10.128.0.16   master    <none>           <none>
+kube-system     kube-controller-manager-master             1/1     Running   15 (30m ago)   45d   10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-6k7fg                           1/1     Running   14 (30m ago)   45d   10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-std4j                           1/1     Running   15 (32m ago)   45d   10.128.0.25   worker1   <none>           <none>
+kube-system     kube-scheduler-master                      1/1     Running   10 (30m ago)   16d   10.128.0.16   master    <none>           <none>
+
+root@master:~# k get svc -A
+NAMESPACE       NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+default         kubernetes                           ClusterIP   10.255.0.1       <none>        443/TCP                  46d
+home            http-server                          ClusterIP   10.255.36.158    <none>        8000/TCP                 20d
+home            http-server-external-ip              ClusterIP   10.255.8.50      10.128.0.25   80/TCP                   13d
+ingress-nginx   ingress-nginx-controller             ClusterIP   10.255.10.67     10.128.0.16   80/TCP,443/TCP           13d
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP   10.255.233.197   <none>        443/TCP                  13d
+kube-system     kube-dns                             ClusterIP   10.255.0.10      <none>        53/UDP,53/TCP,9153/TCP   46d
+```
+
+Versions of nft below 1.0.0 did not properly show randomness of loadbalancing, but finally 1.0.6 works (each path is routed equally):
+```
+root@master:~# nft --version
+nftables v1.0.6 (Lester Gooch #5)
+
+root@master:~# nft list chain ip nat KUBE-SVC-HA7VAA4OSGBZECJS
+# Warning: table ip nat is managed by iptables-nft, do not touch!
+table ip nat {
+	chain KUBE-SVC-HA7VAA4OSGBZECJS {
+		meta l4proto tcp ip saddr != 10.244.0.0/16 ip daddr 10.255.36.158  tcp dport 8000 counter packets 0 bytes 0 jump KUBE-MARK-MASQ
+		 meta random & 2147483647 < 536870912 counter packets 0 bytes 0 jump KUBE-SEP-THTZX6X4WHHVNDOY
+		 meta random & 2147483647 < 715827883 counter packets 0 bytes 0 jump KUBE-SEP-2766M5D56Q6AZKRV
+		 meta random & 2147483647 < 1073741824 counter packets 0 bytes 0 jump KUBE-SEP-A6DEMJGNRCQCX4RM
+		 counter packets 0 bytes 0 jump KUBE-SEP-CPNNTOFAFLMJA46D
+	}
+}
+```
+
+Original iptables rules with 1/n propabilities:
+```
+root@master:~# iptables --version
+iptables v1.8.9 (nf_tables)
+
+root@master:~# sudo iptables -t nat -L KUBE-SVC-HA7VAA4OSGBZECJS
+Chain KUBE-SVC-HA7VAA4OSGBZECJS (1 references)
+target     prot opt source               destination         
+KUBE-MARK-MASQ  tcp  -- !10.244.0.0/16        10.255.36.158        /* home/http-server:mainhttp cluster IP */ tcp dpt:8000
+KUBE-SEP-THTZX6X4WHHVNDOY  all  --  anywhere             anywhere             /* home/http-server:mainhttp -> 10.244.1.65:8000 */ statistic mode random probability 0.25000000000
+KUBE-SEP-2766M5D56Q6AZKRV  all  --  anywhere             anywhere             /* home/http-server:mainhttp -> 10.244.1.67:8000 */ statistic mode random probability 0.33333333349
+KUBE-SEP-A6DEMJGNRCQCX4RM  all  --  anywhere             anywhere             /* home/http-server:mainhttp -> 10.244.1.68:8000 */ statistic mode random probability 0.50000000000
+KUBE-SEP-CPNNTOFAFLMJA46D  all  --  anywhere             anywhere             /* home/http-server:mainhttp -> 10.244.1.70:8000 */
+```
+
 
 # Other failed attempts to expose services to internet
-
 
 ### Another approach with using public-ips for external-ip
 
