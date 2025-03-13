@@ -22,6 +22,8 @@ apt-mark hold kubelet kubeadm kubectl
 
 ### above is the same for master/worker
 
+# get join token: $ kubeadm token create --print-join-command
+
 cat <<EOF | sudo tee /root/kubeadm-config.yaml
 apiVersion: kubeadm.k8s.io/v1beta4
 kind: JoinConfiguration
