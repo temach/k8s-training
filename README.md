@@ -716,7 +716,7 @@ apt autoremove
 reboot
 ```
 
-### update kube-proxy config
+### kube-proxy enforce mode nftables
 
 Get current config:
 ```
@@ -957,7 +957,87 @@ table ip kube-proxy
 table ip6 kube-proxy
 ```
 
-### Reinstall flannel to use NFTables mode
+Example rules:
+```
+# nft -a list table kube-proxy
+table ip kube-proxy { # handle 18
+	comment "rules for kube-proxy"
+	set cluster-ips { # handle 39
+		type ipv4_addr
+		comment "Active ClusterIPs"
+		elements = { 10.255.0.1, 10.255.0.10,
+			     10.255.8.50, 10.255.10.67,
+			     10.255.36.158, 10.255.233.197 }
+	}
+
+	set nodeport-ips { # handle 41
+		type ipv4_addr
+		comment "IPs that accept NodePort traffic"
+		elements = { 10.128.0.25 }
+	}
+
+	map no-endpoint-services { # handle 42
+		type ipv4_addr . inet_proto . inet_service : verdict
+		comment "vmap to drop or reject packets to services with no endpoints"
+	}
+
+	map no-endpoint-nodeports { # handle 43
+		type inet_proto . inet_service : verdict
+		comment "vmap to drop or reject packets to service nodeports with no endpoints"
+	}
+
+	map firewall-ips { # handle 48
+		type ipv4_addr . inet_proto . inet_service : verdict
+		comment "destinations that are subject to LoadBalancerSourceRanges"
+	}
+
+	map service-ips { # handle 50
+		type ipv4_addr . inet_proto . inet_service : verdict
+		comment "ClusterIP, ExternalIP and LoadBalancer IP traffic"
+		elements = { 10.255.0.10 . tcp . 53 : goto service-NWBZK7IH-kube-system/kube-dns/tcp/dns-tcp,
+			     10.255.0.10 . udp . 53 : goto service-FY5PMXPG-kube-system/kube-dns/udp/dns,
+			     10.255.36.158 . tcp . 8000 : goto service-MJTK4JPM-home/http-server/tcp/mainhttp,
+			     10.128.0.16 . tcp . 80 : goto external-TAO5FKKM-ingress-nginx/ingress-nginx-controller/tcp/http,
+			     10.128.0.25 . tcp . 80 : goto external-VQPS6G77-home/http-server-external-ip/tcp/mainhttp,
+			     10.255.8.50 . tcp . 80 : goto service-VQPS6G77-home/http-server-external-ip/tcp/mainhttp,
+			     10.255.10.67 . tcp . 80 : goto service-TAO5FKKM-ingress-nginx/ingress-nginx-controller/tcp/http,
+			     10.255.0.1 . tcp . 443 : goto service-2QRHZV4L-default/kubernetes/tcp/https,
+			     10.128.0.16 . tcp . 443 : goto external-FRX3YWVZ-ingress-nginx/ingress-nginx-controller/tcp/https,
+			     10.255.10.67 . tcp . 443 : goto service-FRX3YWVZ-ingress-nginx/ingress-nginx-controller/tcp/https,
+			     10.255.233.197 . tcp . 443 : goto service-GZRGW4S7-ingress-nginx/ingress-nginx-controller-admission/tcp/https-webhook,
+			     10.255.0.10 . tcp . 9153 : goto service-AS2KJYAD-kube-system/kube-dns/tcp/metrics }
+	}
+
+	map service-nodeports { # handle 51
+		type inet_proto . inet_service : verdict
+		comment "NodePort traffic"
+	}
+
+	chain endpoint-573J25N3-default/kubernetes/tcp/https__10.128.0.16/6443 { # handle 54
+		ip saddr 10.128.0.16 jump mark-for-masquerade # handle 59
+		meta l4proto tcp dnat to 10.128.0.16:6443 # handle 60
+	}
+
+	chain service-2QRHZV4L-default/kubernetes/tcp/https { # handle 55
+		ip daddr 10.255.0.1 tcp dport 443 ip saddr != 10.244.0.0/16 jump mark-for-masquerade # handle 56
+		numgen random mod 1 vmap { 0 : goto endpoint-573J25N3-default/kubernetes/tcp/https__10.128.0.16/6443 } # handle 58
+	}
+
+	chain endpoint-ZRZOUO6E-home/http-server/tcp/mainhttp__10.244.1.71/8000 { # handle 61
+		ip saddr 10.244.1.71 jump mark-for-masquerade # handle 139
+		meta l4proto tcp dnat to 10.244.1.71:8000 # handle 140
+	}
+
+	chain service-MJTK4JPM-home/http-server/tcp/mainhttp { # handle 62
+		ip daddr 10.255.36.158 tcp dport 8000 ip saddr != 10.244.0.0/16 jump mark-for-masquerade # handle 136
+		numgen random mod 4 vmap { 0 : goto endpoint-ZRZOUO6E-home/http-server/tcp/mainhttp__10.244.1.71/8000, 1 : goto endpoint-6JPGGG4H-home/http-server/tcp/mainhttp__10.244.1.72/8000, 2 : goto endpoint-HH426HHC-home/http-server/tcp/mainhttp__10.244.1.73/8000, 3 : goto endpoint-I3S2YGGE-home/http-server/tcp/mainhttp__10.244.1.76/8000 } # handle 138
+	}
+....
+
+```
+
+
+### flannel set enableNFTables true
 
 see: https://github.com/flannel-io/flannel/blob/master/Documentation/configuration.md#nftables-mode
 
@@ -978,4 +1058,29 @@ table ip kube-proxy
 table ip6 kube-proxy
 table ip flannel-ipv4
 table ip6 flannel-ipv6
+```
+
+Example rules:
+```
+# nft list table flannel-ipv4
+table ip flannel-ipv4 {
+	comment "rules for flannel-ipv4"
+	chain postrtg {
+		comment "chain to manage traffic masquerading by flannel"
+		type nat hook postrouting priority srcnat; policy accept;
+		meta mark 0x00004000 return
+		ip saddr 10.244.1.0/24 ip daddr 10.244.0.0/16 return
+		ip saddr 10.244.0.0/16 ip daddr 10.244.1.0/24 return
+		ip saddr != 10.244.1.0/24 ip daddr 10.244.0.0/16 return
+		ip saddr 10.244.0.0/16 ip daddr != 224.0.0.0/4 masquerade fully-random
+		ip saddr != 10.244.0.0/16 ip daddr 10.244.0.0/16 masquerade fully-random
+	}
+
+	chain forward {
+		comment "chain to accept flannel traffic"
+		type filter hook forward priority filter; policy accept;
+		ip saddr 10.244.0.0/16 accept
+		ip daddr 10.244.0.0/16 accept
+	}
+}
 ```
