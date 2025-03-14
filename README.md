@@ -676,11 +676,12 @@ worker3   Ready    <none>          147m    v1.32.1   10.128.0.3    <none>       
 ```
 
 
-# kube-proxy enforce nftables mode (the best of 4 kube-proxy modes: userspace, iptables, ipvs/lvs, nftables)
+
+# Extra: kube-proxy enforce nftables mode (the best of 4 kube-proxy modes: userspace, iptables, ipvs/lvs, nftables)
 
 See: https://kubernetes.io/blog/2025/02/28/nftables-kube-proxy/#future-plans
 Also see: https://kubernetes.io/docs/reference/networking/virtual-ips/#proxy-modes
-
+Also see: https://github.com/kubernetes/enhancements/blob/master/keps/sig-network/3866-nftables-proxy/README.md
 
 ### update debian VMs
 
