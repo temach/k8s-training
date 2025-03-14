@@ -1033,6 +1033,23 @@ table ip kube-proxy { # handle 18
 		ip daddr 10.255.36.158 tcp dport 8000 ip saddr != 10.244.0.0/16 jump mark-for-masquerade # handle 136
 		numgen random mod 4 vmap { 0 : goto endpoint-ZRZOUO6E-home/http-server/tcp/mainhttp__10.244.1.71/8000, 1 : goto endpoint-6JPGGG4H-home/http-server/tcp/mainhttp__10.244.1.72/8000, 2 : goto endpoint-HH426HHC-home/http-server/tcp/mainhttp__10.244.1.73/8000, 3 : goto endpoint-I3S2YGGE-home/http-server/tcp/mainhttp__10.244.1.76/8000 } # handle 138
 	}
+    
+	chain endpoint-6JPGGG4H-home/http-server/tcp/mainhttp__10.244.1.72/8000 { # handle 78
+		ip saddr 10.244.1.72 jump mark-for-masquerade # handle 141
+		meta l4proto tcp dnat to 10.244.1.72:8000 # handle 142
+	}
+
+	chain endpoint-I3S2YGGE-home/http-server/tcp/mainhttp__10.244.1.76/8000 { # handle 96
+		ip saddr 10.244.1.76 jump mark-for-masquerade # handle 145
+		meta l4proto tcp dnat to 10.244.1.76:8000 # handle 146
+    }
+
+   	chain endpoint-HH426HHC-home/http-server/tcp/mainhttp__10.244.1.73/8000 { # handle 135
+		ip saddr 10.244.1.73 jump mark-for-masquerade # handle 143
+		meta l4proto tcp dnat to 10.244.1.73:8000 # handle 144
+	}
+
+
 ....
 
 ```
