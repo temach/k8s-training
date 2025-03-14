@@ -676,3 +676,306 @@ worker3   Ready    <none>          147m    v1.32.1   10.128.0.3    <none>       
 ```
 
 
+# kube-proxy enforce nftables mode (the best of 4 kube-proxy modes: userspace, iptables, ipvs/lvs, nftables)
+
+See: https://kubernetes.io/blog/2025/02/28/nftables-kube-proxy/#future-plans
+Also see: https://kubernetes.io/docs/reference/networking/virtual-ips/#proxy-modes
+
+
+### update debian VMs
+
+Must have:
+- kernel version ($ uname -a) >5.3
+- $ nft --version > 1.0.0
+
+Get a new debian 12 VM and verify that Debian 12 matches version requirements:
+```
+worker4:~# nft --version
+nftables v1.0.6 (Lester Gooch #5)
+worker4:~# uname -a
+Linux worker4 6.1.0-31-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.128-1 (2025-02-07) x86_64 GNU/Linux
+```
+
+Because its a single configmap for all kube-proxy pods they better all run in the same mode:
+(also see: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/#customizing-kube-proxy)
+
+So upgrade Debian 11 nodes, to Debian 12, on each node to allow nftables mode:
+```
+apt update
+# resolve old/new config prompts
+apt upgrade -y
+apt full-upgrade
+reboot
+# replace bullseye with bookworm in apt sources
+vim /etc/apt/sources.list 
+apt update
+# there will be many prompts and config resolutions
+apt full-upgrade
+# trigger grub config update by autoremoving old kernel, so we reboot into latest kernel
+apt autoremove
+reboot
+```
+
+### update kube-proxy config
+
+Get current config:
+```
+root@master:~# k get cm -n kube-system kube-proxy -o yaml
+apiVersion: v1
+data:
+  config.conf: |-
+    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+    bindAddress: 0.0.0.0
+    bindAddressHardFail: false
+    clientConnection:
+      acceptContentTypes: ""
+      burst: 0
+      contentType: ""
+      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      qps: 0
+    clusterCIDR: 10.244.0.0/16
+    configSyncPeriod: 0s
+    conntrack:
+      maxPerCore: null
+      min: null
+      tcpBeLiberal: false
+      tcpCloseWaitTimeout: null
+      tcpEstablishedTimeout: null
+      udpStreamTimeout: 0s
+      udpTimeout: 0s
+    detectLocal:
+      bridgeInterface: ""
+      interfaceNamePrefix: ""
+    detectLocalMode: ""
+    enableProfiling: false
+    healthzBindAddress: ""
+    hostnameOverride: ""
+    iptables:
+      localhostNodePorts: null
+      masqueradeAll: false
+      masqueradeBit: null
+      minSyncPeriod: 0s
+      syncPeriod: 0s
+    ipvs:
+      excludeCIDRs: null
+      minSyncPeriod: 0s
+      scheduler: ""
+      strictARP: false
+      syncPeriod: 0s
+      tcpFinTimeout: 0s
+      tcpTimeout: 0s
+      udpTimeout: 0s
+    kind: KubeProxyConfiguration
+    logging:
+      flushFrequency: 0
+      options:
+        json:
+          infoBufferSize: "0"
+        text:
+          infoBufferSize: "0"
+      verbosity: 0
+    metricsBindAddress: ""
+    mode: ""
+    nftables:
+      masqueradeAll: false
+      masqueradeBit: null
+      minSyncPeriod: 0s
+      syncPeriod: 0s
+    nodePortAddresses: null
+    oomScoreAdj: null
+    portRange: ""
+    showHiddenMetricsForVersion: ""
+    winkernel:
+      enableDSR: false
+      forwardHealthCheckVip: false
+      networkName: ""
+      rootHnsEndpointName: ""
+      sourceVip: ""
+  kubeconfig.conf: |-
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://10.128.0.16:6443
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2025-01-26T07:24:05Z"
+  labels:
+    app: kube-proxy
+  name: kube-proxy
+  namespace: kube-system
+  resourceVersion: "260"
+  uid: 0778a320-xxxx-xxxx-xxxx-a3be640872c3
+```
+
+
+Update /root/kubeadm-config.yaml to have `mode: nftables` on one of the nodes (e.g. on master):
+```
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: nftables
+```
+
+Its possible to manually edit the configmap and restart the kube-proxy pods, but for IaC use kubeadm:
+
+see: https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/
+```
+# kubeadm init phase addon kube-proxy --config /root/kubeadm-config.yaml
+[addons] Applied essential addon: kube-proxy
+```
+
+Note that I did NOT manually edit the kubeadm-config ConfigMap, only ran the init phase command.
+
+
+Verify "mode: nftables" changes in configmap:
+```
+# k get cm -n kube-system kube-proxy -o yaml
+apiVersion: v1
+data:
+  config.conf: |-
+    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+    bindAddress: 0.0.0.0
+    bindAddressHardFail: false
+    clientConnection:
+      acceptContentTypes: ""
+      burst: 0
+      contentType: ""
+      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      qps: 0
+    clusterCIDR: 10.244.0.0/16
+    configSyncPeriod: 0s
+    conntrack:
+      maxPerCore: null
+      min: null
+      tcpBeLiberal: false
+      tcpCloseWaitTimeout: null
+      tcpEstablishedTimeout: null
+      udpStreamTimeout: 0s
+      udpTimeout: 0s
+    detectLocal:
+      bridgeInterface: ""
+      interfaceNamePrefix: ""
+    detectLocalMode: ""
+    enableProfiling: false
+    healthzBindAddress: ""
+    hostnameOverride: ""
+    iptables:
+      localhostNodePorts: null
+      masqueradeAll: false
+      masqueradeBit: null
+      minSyncPeriod: 0s
+      syncPeriod: 0s
+    ipvs:
+      excludeCIDRs: null
+      minSyncPeriod: 0s
+      scheduler: ""
+      strictARP: false
+      syncPeriod: 0s
+      tcpFinTimeout: 0s
+      tcpTimeout: 0s
+      udpTimeout: 0s
+    kind: KubeProxyConfiguration
+    logging:
+      flushFrequency: 0
+      options:
+        json:
+          infoBufferSize: "0"
+        text:
+          infoBufferSize: "0"
+      verbosity: 0
+    metricsBindAddress: ""
+    mode: nftables
+    nftables:
+      masqueradeAll: false
+      masqueradeBit: null
+      minSyncPeriod: 0s
+      syncPeriod: 0s
+    nodePortAddresses: null
+    oomScoreAdj: null
+    portRange: ""
+    showHiddenMetricsForVersion: ""
+    winkernel:
+      enableDSR: false
+      forwardHealthCheckVip: false
+      networkName: ""
+      rootHnsEndpointName: ""
+      sourceVip: ""
+  kubeconfig.conf: |-
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://10.128.0.16:6443
+      name: default
+    contexts:
+    - context:
+        cluster: default
+        namespace: default
+        user: default
+      name: default
+    current-context: default
+    users:
+    - name: default
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2025-01-26T07:24:05Z"
+  labels:
+    app: kube-proxy
+  name: kube-proxy
+  namespace: kube-system
+  resourceVersion: "402442"
+  uid: 0778a320-9e13-42c0-9dc0-a3be640872c3
+```
+
+Also verify that after kube-proxy pod recreated and node reboot, old iptable rules were cleared and kube-proxy create two new nft tables for itself:
+```
+# nft list tables
+table ip nat
+table ip filter
+table ip mangle
+table ip6 mangle
+table ip6 nat
+table ip6 filter
+table ip kube-proxy
+table ip6 kube-proxy
+```
+
+### Reinstall flannel to use NFTables mode
+
+see: https://github.com/flannel-io/flannel/blob/master/Documentation/configuration.md#nftables-mode
+
+```
+# helm upgrade flannel --set podCidr="10.244.0.0/16" --set flannel.enableNFTables=true --namespace kube-flannel flannel/flannel
+```
+
+Verify that flannel created tables for itself after kube-flannel pod recreated:
+```
+# nft list tables
+table ip nat
+table ip filter
+table ip mangle
+table ip6 mangle
+table ip6 nat
+table ip6 filter
+table ip kube-proxy
+table ip6 kube-proxy
+table ip flannel-ipv4
+table ip6 flannel-ipv6
+```
