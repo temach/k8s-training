@@ -136,6 +136,7 @@ These params are ok by default normally. Instructions from CRI-O readme, configu
 ```
 
 "br_netfilter" was actually already loaded by "bridge" kernel module. 
+However! If docker iptables is disabled (e.g. when running k8s on pure nftables), then bridge is not loaded and br_netfilter is not loaded and flannel will fail.
 
 
 Useful links:
