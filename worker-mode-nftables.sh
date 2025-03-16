@@ -1,7 +1,3 @@
-# alternative master script that enforces nftables mode for kube-proxy and flannel
-# see: https://kubernetes.io/blog/2025/02/28/nftables-kube-proxy/#future-plans
-# also see: https://kubernetes.io/docs/reference/networking/virtual-ips/#proxy-mode-nftables
-
 cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
 net.ipv4.ip_forward = 1
 EOF
@@ -31,22 +27,21 @@ systemctl restart systemd-modules-load.service
 
 ### above is the same for master/worker
 
+# get join token: $ kubeadm token create --print-join-command
+
 cat <<EOF | sudo tee /root/kubeadm-config.yaml
 apiVersion: kubeadm.k8s.io/v1beta4
-kind: InitConfiguration
+kind: JoinConfiguration
 nodeRegistration:
+  # name: worker1          # hostname by default
   criSocket: unix:///var/run/cri-dockerd.sock
-  name: master
-localAPIEndpoint:
-  advertiseAddress: 10.128.0.16
-
----
-apiVersion: kubeadm.k8s.io/v1beta4
-kind: ClusterConfiguration
-kubernetesVersion: v1.31.0
-networking:
-  podSubnet: "10.244.0.0/16" # --pod-network-cidr apparently special value for flannel
-  serviceSubnet: "10.255.0.0/16"
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: "10.128.0.16:6443"
+    token: "0XXXXX.0XXXXXXXXXXXXXXn"
+    caCertHashes: 
+      - "sha256:57XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXa"
+    unsafeSkipCAVerification: false
 
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -56,18 +51,8 @@ cgroupDriver: systemd
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
-mode: nftables
 EOF
 
 
-kubeadm init --config /root/kubeadm-config.yaml
+kubeadm join --config /root/kubeadm-config.yaml
 
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-export KUBECONFIG=/etc/kubernetes/admin.conf
-kubectl create ns kube-flannel
-kubectl label --overwrite ns kube-flannel pod-security.kubernetes.io/enforce=privileged
-helm repo add flannel https://flannel-io.github.io/flannel/
-
-# see: https://github.com/flannel-io/flannel/blob/master/Documentation/configuration.md#nftables-mode
-helm upgrade flannel --set podCidr="10.244.0.0/16" --set flannel.enableNFTables=true --namespace kube-flannel flannel/flannel

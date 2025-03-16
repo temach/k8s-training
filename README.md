@@ -705,13 +705,13 @@ So upgrade Debian 11 nodes, to Debian 12, on each node to allow nftables mode:
 apt update
 # resolve old/new config prompts
 apt upgrade -y
-apt full-upgrade
+apt full-upgrade -y
 reboot
-# replace bullseye with bookworm in apt sources
+# replace "bullseye" with "bookworm" in apt sources
 vim /etc/apt/sources.list 
 apt update
 # there will be many prompts and config resolutions
-apt full-upgrade
+apt full-upgrade -y
 # trigger grub config update by autoremoving old kernel, so we reboot into latest kernel
 apt autoremove
 reboot
@@ -831,7 +831,7 @@ kind: KubeProxyConfiguration
 mode: nftables
 ```
 
-Its possible to manually edit the configmap and restart the kube-proxy pods, but for IaC use kubeadm:
+Its possible to manually edit the configmap, but for IaC use kubeadm:
 
 see: https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/
 ```
@@ -945,7 +945,7 @@ metadata:
   uid: 0778a320-9e13-42c0-9dc0-a3be640872c3
 ```
 
-Also verify that after kube-proxy pod recreated and node reboot, old iptable rules were cleared and kube-proxy create two new nft tables for itself:
+Restart the kube-proxy pods and do a node reboot. Now verify that old iptable rules were cleared and kube-proxy create two new nft tables for itself:
 ```
 # nft list tables
 table ip nat
@@ -1102,3 +1102,70 @@ table ip flannel-ipv4 {
 	}
 }
 ```
+
+
+
+### docker caveat
+
+see: https://docs.docker.com/reference/cli/dockerd/#daemon-configuration-file
+
+If using docker, better disable its handing of iptables all together :
+```
+# cat /etc/docker/daemon.json
+{
+  "iptables": false,
+  "ip6tables": false
+}
+# reboot
+```
+
+But after reboot flannel failes:
+```
+root@master:~# k get pods -A -o wide
+NAMESPACE       NAME                                       READY   STATUS             RESTARTS         AGE     IP            NODE      NOMINATED NODE   READINESS GATES
+home            http-server-56bb7f7b5b-6hnnf               0/1     Error              5                3d3h    <none>        worker1   <none>           <none>
+home            http-server-56bb7f7b5b-b4rm5               0/1     Error              5                3d3h    <none>        worker1   <none>           <none>
+home            http-server-56bb7f7b5b-f2btm               0/1     Error              5                3d3h    <none>        worker1   <none>           <none>
+home            http-server-56bb7f7b5b-rbvk2               0/1     Error              8                16d     <none>        worker1   <none>           <none>
+ingress-nginx   ingress-nginx-controller-cd9d6bbd7-df6w5   0/1     Error              10               15d     <none>        worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-hrzrx                      0/1     CrashLoopBackOff   10 (3m55s ago)   52m     10.128.0.25   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-kt2mh                      0/1     CrashLoopBackOff   11 (4m28s ago)   53m     10.128.0.3    worker3   <none>           <none>
+kube-flannel    kube-flannel-ds-q2gl4                      0/1     CrashLoopBackOff   10 (4m51s ago)   53m     10.128.0.26   worker2   <none>           <none>
+kube-flannel    kube-flannel-ds-qvj4z                      0/1     CrashLoopBackOff   6 (3m7s ago)     9m5s    10.128.0.16   master    <none>           <none>
+kube-system     coredns-7c65d6cfc9-8t6pl                   0/1     Completed          7                3d15h   <none>        worker1   <none>           <none>
+kube-system     coredns-7c65d6cfc9-pk4xt                   0/1     Completed          11               18d     <none>        master    <none>           <none>
+kube-system     etcd-master                                1/1     Running            18 (32m ago)     48d     10.128.0.16   master    <none>           <none>
+kube-system     kube-apiserver-master                      1/1     Running            18 (32m ago)     48d     10.128.0.16   master    <none>           <none>
+kube-system     kube-controller-manager-master             1/1     Running            19 (32m ago)     48d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-bp57z                           1/1     Running            4 (33m ago)      2d19h   10.128.0.25   worker1   <none>           <none>
+kube-system     kube-proxy-hkklk                           1/1     Running            4 (32m ago)      2d19h   10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-x4qcl                           1/1     Running            1 (33m ago)      53m     10.128.0.26   worker2   <none>           <none>
+kube-system     kube-proxy-z5ztj                           1/1     Running            1 (33m ago)      53m     10.128.0.3    worker3   <none>           <none>
+kube-system     kube-scheduler-master                      1/1     Running            14 (32m ago)     18d     10.128.0.16   master    <none>           <none>
+```
+
+Looking at logs:
+```
+root@master:~# k logs -n kube-flannel kube-flannel-ds-qvj4z
+Defaulted container "kube-flannel" out of: kube-flannel, install-cni-plugin (init), install-cni (init)
+I0316 18:45:17.771355       1 main.go:211] CLI flags config: {etcdEndpoints:http://127.0.0.1:4001,http://127.0.0.1:2379 etcdPrefix:/coreos.com/network etcdKeyfile: etcdCertfile: etcdCAFile: etcdUsername: etcdPassword: version:false kubeSubnetMgr:true kubeApiUrl: kubeAnnotationPrefix:flannel.alpha.coreos.com kubeConfigFile: iface:[] ifaceRegex:[] ipMasq:true ifaceCanReach: subnetFile:/run/flannel/subnet.env publicIP: publicIPv6: subnetLeaseRenewMargin:60 healthzIP:0.0.0.0 healthzPort:0 iptablesResyncSeconds:5 iptablesForwardRules:true netConfPath:/etc/kube-flannel/net-conf.json setNodeNetworkUnavailable:true}
+W0316 18:45:17.771489       1 client_config.go:618] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0316 18:45:17.785822       1 kube.go:139] Waiting 10m0s for node controller to sync
+I0316 18:45:17.785886       1 kube.go:469] Starting kube subnet manager
+I0316 18:45:17.791551       1 kube.go:490] Creating the node lease for IPv4. This is the n.Spec.PodCIDRs: [10.244.0.0/24]
+I0316 18:45:17.791598       1 kube.go:490] Creating the node lease for IPv4. This is the n.Spec.PodCIDRs: [10.244.1.0/24]
+I0316 18:45:17.791608       1 kube.go:490] Creating the node lease for IPv4. This is the n.Spec.PodCIDRs: [10.244.2.0/24]
+I0316 18:45:17.791615       1 kube.go:490] Creating the node lease for IPv4. This is the n.Spec.PodCIDRs: [10.244.3.0/24]
+I0316 18:45:18.786787       1 kube.go:146] Node controller sync successful
+I0316 18:45:18.786823       1 main.go:231] Created subnet manager: Kubernetes Subnet Manager - master
+I0316 18:45:18.786829       1 main.go:234] Installing signal handlers
+I0316 18:45:18.787180       1 main.go:468] Found network config - Backend type: vxlan
+E0316 18:45:18.787279       1 main.go:268] Failed to check br_netfilter: stat /proc/sys/net/bridge/bridge-nf-call-iptables: no such file or directory
+```
+
+Remedy flannel with loading netfilter kernel module:
+```
+# modprobe br_netfilter
+```
+
+Then manually delete and recreate all flannel pods and everything will work.
