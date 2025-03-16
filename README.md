@@ -631,9 +631,7 @@ $ curl --connect-to 'homework.otus:80:89.169.144.205:30008' 'http://homework.otu
 
 Now create yc network loadbalancer and point it to this NodePort:
 
-
-
-
+![image](https://github.com/user-attachments/assets/433d6b47-8958-4a86-b7a4-c665a18a6bcf)
 
 
 Test the loadbalancer:
@@ -643,8 +641,7 @@ Test the loadbalancer:
 <html><p>Hellow world!</p></html>
 ```
 
-
-
+Now if a node should fail, the loadbalancer should redirect traffic to other healthy nodes. Previous exposure methods did not provide failover. 
 
 
 
