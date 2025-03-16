@@ -10,4 +10,4 @@ spec:
     - protocol: TCP
       name: mainhttp
       port: 8000
-      nodePort: 38000
+      nodePort: 30008
