@@ -10,6 +10,8 @@ sysctl --system
 apt update
 apt upgrade -y
 
+mkdir /etc/docker/
+echo '{"iptables": false,"ip6tables": false}' > /etc/docker/daemon.json
 apt install -y docker.io gpg ca-certificates
 install -m 0755 -d /etc/apt/keyrings
 
@@ -24,8 +26,7 @@ apt update
 apt install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 
-cat /etc/docker/daemon.json
-echo '{"iptables": false,"ip6tables": false}' > /etc/docker/daemon.json
+# flannel needs br_netfilter
 echo "br_netfilter" > /etc/modules-load.d/br_netfilter.conf
 systemctl restart systemd-modules-load.service
 

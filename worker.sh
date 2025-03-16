@@ -20,6 +20,10 @@ apt update
 apt install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 
+# flannel needs br_netfilter
+echo "br_netfilter" > /etc/modules-load.d/br_netfilter.conf
+systemctl restart systemd-modules-load.service
+
 ### above is the same for master/worker
 
 # get join token: $ kubeadm token create --print-join-command
@@ -47,7 +51,6 @@ cgroupDriver: systemd
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 EOF
-
 
 kubeadm join --config /root/kubeadm-config.yaml
 

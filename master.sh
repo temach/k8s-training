@@ -20,6 +20,10 @@ apt update
 apt install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 
+# flannel needs br_netfilter
+echo "br_netfilter" > /etc/modules-load.d/br_netfilter.conf
+systemctl restart systemd-modules-load.service
+
 ### above is the same for master/worker
 
 cat <<EOF | sudo tee /root/kubeadm-config.yaml
