@@ -646,7 +646,7 @@ Now if a node should fail, the loadbalancer should redirect traffic to other hea
 
 
 
-# kube-proxy "mode: iptables" and random load balancing
+# kube-proxy in "mode: iptables" and randomised load balancing
 
 for slightly dated theory see: https://netdevconf.info/1.1/proceedings/papers/Load-balancing-with-nftables.pdf
 
@@ -713,7 +713,263 @@ KUBE-SEP-A6DEMJGNRCQCX4RM  all  --  anywhere             anywhere             /*
 KUBE-SEP-CPNNTOFAFLMJA46D  all  --  anywhere             anywhere             /* home/http-server:mainhttp -> 10.244.1.70:8000 */
 ```
 
-### 
+
+# kube-proxy in "mode: nftables" and randomised loadbalancing
+
+
+Deleted "http-server-node-port", "http-server-external-ip", "ingress-nginx-controller", "ingress-nginx-controller-admission" services to make nft output more clear.
+
+Pods and services :
+```
+root@master:~# k get pods -A -o wide
+NAMESPACE       NAME                                       READY   STATUS    RESTARTS        AGE     IP            NODE      NOMINATED NODE   READINESS GATES
+home            http-server-56bb7f7b5b-6hnnf               1/1     Running   6 (133m ago)    3d5h    10.244.1.91   worker1   <none>           <none>
+home            http-server-56bb7f7b5b-b4rm5               1/1     Running   6 (133m ago)    3d5h    10.244.1.92   worker1   <none>           <none>
+home            http-server-56bb7f7b5b-f2btm               1/1     Running   6 (133m ago)    3d5h    10.244.1.94   worker1   <none>           <none>
+home            http-server-56bb7f7b5b-rbvk2               1/1     Running   9 (133m ago)    16d     10.244.1.93   worker1   <none>           <none>
+ingress-nginx   ingress-nginx-controller-cd9d6bbd7-df6w5   1/1     Running   11 (133m ago)   16d     10.244.1.89   worker1   <none>           <none>
+kube-flannel    kube-flannel-ds-hjwfh                      1/1     Running   0               97m     10.128.0.16   master    <none>           <none>
+kube-flannel    kube-flannel-ds-q2gl4                      1/1     Running   12 (99m ago)    153m    10.128.0.26   worker2   <none>           <none>
+kube-flannel    kube-flannel-ds-sq6s7                      1/1     Running   0               81m     10.128.0.3    worker3   <none>           <none>
+kube-flannel    kube-flannel-ds-sx6qk                      1/1     Running   0               93m     10.128.0.25   worker1   <none>           <none>
+kube-system     coredns-7c65d6cfc9-gmzxw                   1/1     Running   0               92m     10.244.2.2    worker2   <none>           <none>
+kube-system     coredns-7c65d6cfc9-pk4xt                   1/1     Running   12 (132m ago)   18d     10.244.0.25   master    <none>           <none>
+kube-system     etcd-master                                1/1     Running   18 (132m ago)   48d     10.128.0.16   master    <none>           <none>
+kube-system     kube-apiserver-master                      1/1     Running   18 (132m ago)   48d     10.128.0.16   master    <none>           <none>
+kube-system     kube-controller-manager-master             1/1     Running   19 (132m ago)   48d     10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-bp57z                           1/1     Running   4 (133m ago)    2d20h   10.128.0.25   worker1   <none>           <none>
+kube-system     kube-proxy-hkklk                           1/1     Running   4 (132m ago)    2d20h   10.128.0.16   master    <none>           <none>
+kube-system     kube-proxy-x4qcl                           1/1     Running   1 (133m ago)    153m    10.128.0.26   worker2   <none>           <none>
+kube-system     kube-proxy-z5ztj                           1/1     Running   2 (91m ago)     153m    10.128.0.3    worker3   <none>           <none>
+kube-system     kube-scheduler-master                      1/1     Running   14 (132m ago)   18d     10.128.0.16   master    <none>           <none>
+
+root@master:~# k get svc -A
+NAMESPACE       NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+default         kubernetes                           ClusterIP   10.255.0.1       <none>        443/TCP                  49d
+home            http-server                          ClusterIP   10.255.36.158    <none>        8000/TCP                 23d
+kube-system     kube-dns                             ClusterIP   10.255.0.10      <none>        53/UDP,53/TCP,9153/TCP   49d
+```
+
+nft rules after kube-proxy has been swithched to nft mode:
+```
+# nft list table ip kube-proxy
+table ip kube-proxy {
+	comment "rules for kube-proxy"
+	set cluster-ips {
+		type ipv4_addr
+		comment "Active ClusterIPs"
+		elements = { 10.255.0.1, 10.255.0.10,
+			     10.255.36.158 }
+	}
+
+	set nodeport-ips {
+		type ipv4_addr
+		comment "IPs that accept NodePort traffic"
+		elements = { 10.128.0.16 }
+	}
+
+	map no-endpoint-services {
+		type ipv4_addr . inet_proto . inet_service : verdict
+		comment "vmap to drop or reject packets to services with no endpoints"
+	}
+
+	map no-endpoint-nodeports {
+		type inet_proto . inet_service : verdict
+		comment "vmap to drop or reject packets to service nodeports with no endpoints"
+	}
+
+	map firewall-ips {
+		type ipv4_addr . inet_proto . inet_service : verdict
+		comment "destinations that are subject to LoadBalancerSourceRanges"
+	}
+
+	map service-ips {
+		type ipv4_addr . inet_proto . inet_service : verdict
+		comment "ClusterIP, ExternalIP and LoadBalancer IP traffic"
+		elements = { 10.255.0.10 . tcp . 53 : goto service-NWBZK7IH-kube-system/kube-dns/tcp/dns-tcp,
+			     10.255.0.10 . udp . 53 : goto service-FY5PMXPG-kube-system/kube-dns/udp/dns,
+			     10.255.36.158 . tcp . 8000 : goto service-MJTK4JPM-home/http-server/tcp/mainhttp,
+			     10.255.0.1 . tcp . 443 : goto service-2QRHZV4L-default/kubernetes/tcp/https,
+			     10.255.0.10 . tcp . 9153 : goto service-AS2KJYAD-kube-system/kube-dns/tcp/metrics }
+	}
+
+	map service-nodeports {
+		type inet_proto . inet_service : verdict
+		comment "NodePort traffic"
+	}
+
+	chain filter-prerouting {
+		type filter hook prerouting priority dstnat - 10; policy accept;
+		ct state new jump firewall-check
+	}
+
+	chain filter-input {
+		type filter hook input priority -110; policy accept;
+		ct state new jump nodeport-endpoints-check
+		ct state new jump service-endpoints-check
+	}
+
+	chain filter-forward {
+		type filter hook forward priority -110; policy accept;
+		ct state new jump service-endpoints-check
+		ct state new jump cluster-ips-check
+	}
+
+	chain filter-output {
+		type filter hook output priority -110; policy accept;
+		ct state new jump service-endpoints-check
+		ct state new jump firewall-check
+	}
+
+	chain filter-output-post-dnat {
+		type filter hook output priority -90; policy accept;
+		ct state new jump cluster-ips-check
+	}
+
+	chain nat-prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		jump services
+	}
+
+	chain nat-output {
+		type nat hook output priority -100; policy accept;
+		jump services
+	}
+
+	chain nat-postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		jump masquerading
+	}
+
+	chain nodeport-endpoints-check {
+		ip daddr @nodeport-ips meta l4proto . th dport vmap @no-endpoint-nodeports
+	}
+
+	chain service-endpoints-check {
+		ip daddr . meta l4proto . th dport vmap @no-endpoint-services
+	}
+
+	chain firewall-check {
+		ip daddr . meta l4proto . th dport vmap @firewall-ips
+	}
+
+	chain services {
+		ip daddr . meta l4proto . th dport vmap @service-ips
+		ip daddr @nodeport-ips meta l4proto . th dport vmap @service-nodeports
+	}
+
+	chain masquerading {
+		meta mark & 0x00004000 == 0x00000000 return
+		meta mark set meta mark ^ 0x00004000
+		masquerade fully-random
+	}
+
+	chain cluster-ips-check {
+		ip daddr @cluster-ips reject comment "Reject traffic to invalid ports of ClusterIPs"
+	}
+
+	chain mark-for-masquerade {
+		meta mark set meta mark | 0x00004000
+	}
+
+	chain reject-chain {
+		comment "helper for @no-endpoint-services / @no-endpoint-nodeports"
+		reject
+	}
+
+	chain endpoint-573J25N3-default/kubernetes/tcp/https__10.128.0.16/6443 {
+		ip saddr 10.128.0.16 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.128.0.16:6443
+	}
+
+	chain service-2QRHZV4L-default/kubernetes/tcp/https {
+		ip daddr 10.255.0.1 tcp dport 443 ip saddr != 10.244.0.0/16 jump mark-for-masquerade
+		numgen random mod 1 vmap { 0 : goto endpoint-573J25N3-default/kubernetes/tcp/https__10.128.0.16/6443 }
+	}
+
+	chain endpoint-XPIVB47B-kube-system/kube-dns/tcp/dns-tcp__10.244.0.25/53 {
+		ip saddr 10.244.0.25 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.0.25:53
+	}
+
+	chain service-NWBZK7IH-kube-system/kube-dns/tcp/dns-tcp {
+		ip daddr 10.255.0.10 tcp dport 53 ip saddr != 10.244.0.0/16 jump mark-for-masquerade
+		numgen random mod 2 vmap { 0 : goto endpoint-XPIVB47B-kube-system/kube-dns/tcp/dns-tcp__10.244.0.25/53, 1 : goto endpoint-RWWT7F7W-kube-system/kube-dns/tcp/dns-tcp__10.244.2.2/53 }
+	}
+
+	chain endpoint-FQZO75QC-kube-system/kube-dns/tcp/metrics__10.244.0.25/9153 {
+		ip saddr 10.244.0.25 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.0.25:9153
+	}
+
+	chain service-AS2KJYAD-kube-system/kube-dns/tcp/metrics {
+		ip daddr 10.255.0.10 tcp dport 9153 ip saddr != 10.244.0.0/16 jump mark-for-masquerade
+		numgen random mod 2 vmap { 0 : goto endpoint-FQZO75QC-kube-system/kube-dns/tcp/metrics__10.244.0.25/9153, 1 : goto endpoint-LQXKRQ3Z-kube-system/kube-dns/tcp/metrics__10.244.2.2/9153 }
+	}
+
+	chain endpoint-AO6IWN4Y-kube-system/kube-dns/udp/dns__10.244.0.25/53 {
+		ip saddr 10.244.0.25 jump mark-for-masquerade
+		meta l4proto udp dnat to 10.244.0.25:53
+	}
+
+	chain service-FY5PMXPG-kube-system/kube-dns/udp/dns {
+		ip daddr 10.255.0.10 udp dport 53 ip saddr != 10.244.0.0/16 jump mark-for-masquerade
+		numgen random mod 2 vmap { 0 : goto endpoint-AO6IWN4Y-kube-system/kube-dns/udp/dns__10.244.0.25/53, 1 : goto endpoint-VL6TBTHR-kube-system/kube-dns/udp/dns__10.244.2.2/53 }
+	}
+
+	chain endpoint-UX7S7HJ7-home/http-server/tcp/mainhttp__10.244.1.91/8000 {
+		ip saddr 10.244.1.91 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.1.91:8000
+	}
+
+	chain service-MJTK4JPM-home/http-server/tcp/mainhttp {
+		ip daddr 10.255.36.158 tcp dport 8000 ip saddr != 10.244.0.0/16 jump mark-for-masquerade
+		numgen random mod 4 vmap { 0 : goto endpoint-UX7S7HJ7-home/http-server/tcp/mainhttp__10.244.1.91/8000, 1 : goto endpoint-IL3J3OEM-home/http-server/tcp/mainhttp__10.244.1.92/8000, 2 : goto endpoint-DAF54NQB-home/http-server/tcp/mainhttp__10.244.1.93/8000, 3 : goto endpoint-NZGRSBD3-home/http-server/tcp/mainhttp__10.244.1.94/8000 }
+	}
+
+	chain endpoint-IL3J3OEM-home/http-server/tcp/mainhttp__10.244.1.92/8000 {
+		ip saddr 10.244.1.92 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.1.92:8000
+	}
+
+	chain endpoint-DAF54NQB-home/http-server/tcp/mainhttp__10.244.1.93/8000 {
+		ip saddr 10.244.1.93 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.1.93:8000
+	}
+
+	chain endpoint-NZGRSBD3-home/http-server/tcp/mainhttp__10.244.1.94/8000 {
+		ip saddr 10.244.1.94 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.1.94:8000
+	}
+
+	chain endpoint-VL6TBTHR-kube-system/kube-dns/udp/dns__10.244.2.2/53 {
+		ip saddr 10.244.2.2 jump mark-for-masquerade
+		meta l4proto udp dnat to 10.244.2.2:53
+	}
+
+	chain endpoint-RWWT7F7W-kube-system/kube-dns/tcp/dns-tcp__10.244.2.2/53 {
+		ip saddr 10.244.2.2 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.2.2:53
+	}
+
+	chain endpoint-LQXKRQ3Z-kube-system/kube-dns/tcp/metrics__10.244.2.2/9153 {
+		ip saddr 10.244.2.2 jump mark-for-masquerade
+		meta l4proto tcp dnat to 10.244.2.2:9153
+	}
+}
+```
+
+The randomiser is here:
+```
+	chain service-MJTK4JPM-home/http-server/tcp/mainhttp {
+		ip daddr 10.255.36.158 tcp dport 8000 ip saddr != 10.244.0.0/16 jump mark-for-masquerade
+		numgen random mod 4 vmap { 0 : goto endpoint-UX7S7HJ7-home/http-server/tcp/mainhttp__10.244.1.91/8000, 1 : goto endpoint-IL3J3OEM-home/http-server/tcp/mainhttp__10.244.1.92/8000, 2 : goto endpoint-DAF54NQB-home/http-server/tcp/mainhttp__10.244.1.93/8000, 3 : goto endpoint-NZGRSBD3-home/http-server/tcp/mainhttp__10.244.1.94/8000 }
+	}
+
+```
+
+
+
 
 # Other failed attempts to expose services to internet
 
