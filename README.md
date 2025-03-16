@@ -529,6 +529,126 @@ Defaulted container "server-container" out of: server-container, generate-index 
 10.244.1.1 - - [28/Feb/2025 19:40:26] "GET / HTTP/1.1" 200 -
 ```
 
+### Expose the service using NodePort and yc loadbalancer
+
+NodePort service:
+```
+# cat service-node-port.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-server-node-port
+spec:
+  type: NodePort
+  selector:
+    app: http-server
+  ports:
+    - protocol: TCP
+      name: mainhttp
+      port: 8000
+      nodePort: 30008
+
+# kubectl -n home apply -f service-node-port.yaml 
+service/http-server-node-port created
+
+# k get svc -A
+NAMESPACE       NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+default         kubernetes                           ClusterIP   10.255.0.1       <none>        443/TCP                  49d
+home            http-server                          ClusterIP   10.255.36.158    <none>        8000/TCP                 23d
+home            http-server-external-ip              ClusterIP   10.255.8.50      10.128.0.25   80/TCP                   16d
+home            http-server-node-port                NodePort    10.255.139.129   <none>        8000:30008/TCP           20m
+ingress-nginx   ingress-nginx-controller             ClusterIP   10.255.10.67     10.128.0.16   80/TCP,443/TCP           16d
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP   10.255.233.197   <none>        443/TCP                  16d
+kube-system     kube-dns                             ClusterIP   10.255.0.10      <none>        53/UDP,53/TCP,9153/TCP   49d
+```
+
+This will NOT show up in "ss -lntp", because it will show up in kube-proxy nft table:
+```
+root@worker3# ss -lntp
+State             Recv-Q            Send-Q                       Local Address:Port                        Peer Address:Port           Process                                          
+LISTEN            0                 4096                             127.0.0.1:39385                            0.0.0.0:*               users:(("cri-dockerd",pid=750,fd=8))            
+LISTEN            0                 4096                             127.0.0.1:10249                            0.0.0.0:*               users:(("kube-proxy",pid=1057,fd=9))            
+LISTEN            0                 4096                             127.0.0.1:10248                            0.0.0.0:*               users:(("kubelet",pid=853,fd=16))               
+LISTEN            0                 4096                             127.0.0.1:44149                            0.0.0.0:*               users:(("containerd",pid=632,fd=10))            
+LISTEN            0                 128                                0.0.0.0:22                               0.0.0.0:*               users:(("sshd",pid=689,fd=3))                   
+LISTEN            0                 4096                                     *:10256                                  *:*               users:(("kube-proxy",pid=1057,fd=8))            
+LISTEN            0                 4096                                     *:10250                                  *:*               users:(("kubelet",pid=853,fd=12))               
+LISTEN            0                 128                                   [::]:22                                  [::]:*               users:(("sshd",pid=689,fd=4))                   
+
+root@worker3# nft list table ip kube-proxy | grep 30008 -C3
+	map service-nodeports {
+		type inet_proto . inet_service : verdict
+		comment "NodePort traffic"
+		elements = { tcp . 30008 : goto external-VXNQUEPC-home/http-server-node-port/tcp/mainhttp }
+	}
+```
+
+Current ips:
+```
+# yc compute instances list
++---------+---------+----------------+-------------+
+|  NAME   | STATUS  |  EXTERNAL IP   | INTERNAL IP |
++---------+---------+----------------+-------------+
+| master  | RUNNING | 158.160.61.136 | 10.128.0.16 |
+| worker1 | RUNNING | 158.160.36.172 | 10.128.0.25 |
+| worker2 | RUNNING | 89.169.144.205 | 10.128.0.26 |
+| worker3 | RUNNING | 89.169.145.158 | 10.128.0.3  |
++---------+---------+----------------+-------------+
+```
+
+Test that python service (without nginx routes) is reachable on all ips:
+```
+$ curl -v --connect-to 'homework.otus:80:158.160.36.172:30008' 'http://homework.otus/index.html'  
+* Connecting to hostname: 158.160.36.172
+* Connecting to port: 30008
+*   Trying 158.160.36.172:30008...
+* Connected to 158.160.36.172 (158.160.36.172) port 30008
+* using HTTP/1.x
+> GET /index.html HTTP/1.1
+> Host: homework.otus
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Server: SimpleHTTP/0.6 Python/3.13.2
+< Date: Sun, 16 Mar 2025 19:39:03 GMT
+< Content-type: text/html
+< Content-Length: 34
+< Last-Modified: Sun, 16 Mar 2025 18:55:03 GMT
+< 
+<html><p>Hellow world!</p></html>
+* shutting down connection #0
+
+
+$ curl --connect-to 'homework.otus:80:89.169.145.158:30008' 'http://homework.otus/index.html'   
+<html><p>Hellow world!</p></html>
+
+$ curl --connect-to 'homework.otus:80:89.169.144.205:30008' 'http://homework.otus/index.html'
+<html><p>Hellow world!</p></html>
+```
+
+Now create yc network loadbalancer and point it to this NodePort:
+
+
+
+
+
+
+Test the loadbalancer:
+```
+# curl --connect-to 'homework.otus:80:158.160.151.193:8000' 'http://homework.otus/index.html'
+
+<html><p>Hellow world!</p></html>
+```
+
+
+
+
+
+
+
 # kube-proxy "mode: iptables" and random load balancing
 
 for slightly dated theory see: https://netdevconf.info/1.1/proceedings/papers/Load-balancing-with-nftables.pdf
@@ -596,6 +716,7 @@ KUBE-SEP-A6DEMJGNRCQCX4RM  all  --  anywhere             anywhere             /*
 KUBE-SEP-CPNNTOFAFLMJA46D  all  --  anywhere             anywhere             /* home/http-server:mainhttp -> 10.244.1.70:8000 */
 ```
 
+### 
 
 # Other failed attempts to expose services to internet
 
