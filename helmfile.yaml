@@ -30,6 +30,20 @@ releases:
     chart: istio/istiod
     version: "1.25.0" 
 
+  - name: kiali-operator
+    namespace: kiali
+    chart: kiali/kiali-operator
+    version: "2.7.0"
+    values:
+      - cr:
+          # For what a Kiali CR spec can look like, see: https://kiali.io/docs/configuration/kialis.kiali.io/
+          create: true
+          name: kiali-server
+
+          spec:
+            deployment:
+              service_type: "ClusterIP"
+
   - name: prometheus
     namespace: prometheus
     chart: prometheus-community/prometheus
@@ -62,18 +76,4 @@ releases:
           ## Prometheus' data retention size. Supported units: B, KB, MB, GB, TB, PB, EB.
           retentionSize: "7GB"
 
-
-  - name: kiali-operator
-    namespace: kiali
-    chart: kiali/kiali-operator
-    version: "2.7.0"
-    values:
-      - cr:
-          # For what a Kiali CR spec can look like, see: https://kiali.io/docs/configuration/kialis.kiali.io/
-          create: true
-          name: kiali-server
-
-          spec:
-            deployment:
-              service_type: "ClusterIP"
 

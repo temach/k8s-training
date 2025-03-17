@@ -410,3 +410,40 @@ kiali-operator   kiali       kiali/kiali-operator   2.7.0           1s
 ```
 
 
+At this point prometheus and alertmanager do not start, due to persistent volume requirements:
+```
+# k get pods -A -o wide
+NAMESPACE      NAME                                                 READY   STATUS    RESTARTS         AGE     IP             NODE      NOMINATED NODE   READINESS GATES
+home           http-server-56bb7f7b5b-6hnnf                         1/1     Running   9 (120m ago)     3d23h   10.244.1.108   worker1   <none>           <none>
+home           http-server-56bb7f7b5b-b4rm5                         1/1     Running   9 (120m ago)     3d23h   10.244.1.106   worker1   <none>           <none>
+home           http-server-56bb7f7b5b-f2btm                         1/1     Running   9 (120m ago)     3d23h   10.244.1.107   worker1   <none>           <none>
+home           http-server-56bb7f7b5b-rbvk2                         1/1     Running   12 (120m ago)    16d     10.244.1.105   worker1   <none>           <none>
+istio-system   istiod-558554f5df-56pfh                              1/1     Running   0                31m     10.244.3.2     worker3   <none>           <none>
+kiali          kiali-7fb646f555-g2gfl                               1/1     Running   0                2m38s   10.244.2.8     worker2   <none>           <none>
+kiali          kiali-operator-6bcdcb6998-fr562                      1/1     Running   0                5m25s   10.244.2.7     worker2   <none>           <none>
+kube-flannel   kube-flannel-ds-hjwfh                                1/1     Running   3 (118m ago)     19h     10.128.0.16    master    <none>           <none>
+kube-flannel   kube-flannel-ds-q2gl4                                1/1     Running   16 (117m ago)    20h     10.128.0.26    worker2   <none>           <none>
+kube-flannel   kube-flannel-ds-sq6s7                                1/1     Running   4 (118m ago)     19h     10.128.0.3     worker3   <none>           <none>
+kube-flannel   kube-flannel-ds-sx6qk                                1/1     Running   4 (117m ago)     19h     10.128.0.25    worker1   <none>           <none>
+kube-system    coredns-7c65d6cfc9-gmzxw                             1/1     Running   2 (120m ago)     19h     10.244.2.4     worker2   <none>           <none>
+kube-system    coredns-7c65d6cfc9-pk4xt                             1/1     Running   14 (119m ago)    19d     10.244.0.27    master    <none>           <none>
+kube-system    etcd-master                                          1/1     Running   20 (3h46m ago)   49d     10.128.0.16    master    <none>           <none>
+kube-system    kube-apiserver-master                                1/1     Running   20 (3h46m ago)   49d     10.128.0.16    master    <none>           <none>
+kube-system    kube-controller-manager-master                       1/1     Running   21 (3h46m ago)   49d     10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-bp57z                                     1/1     Running   7 (120m ago)     3d14h   10.128.0.25    worker1   <none>           <none>
+kube-system    kube-proxy-hkklk                                     1/1     Running   6 (3h46m ago)    3d14h   10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-x4qcl                                     1/1     Running   3 (120m ago)     20h     10.128.0.26    worker2   <none>           <none>
+kube-system    kube-proxy-z5ztj                                     1/1     Running   4 (120m ago)     20h     10.128.0.3     worker3   <none>           <none>
+kube-system    kube-scheduler-master                                1/1     Running   16 (3h46m ago)   19d     10.128.0.16    master    <none>           <none>
+prometheus     prometheus-alertmanager-0                            0/1     Pending   0                5m25s   <none>         <none>    <none>           <none>
+prometheus     prometheus-server-596945876b-qwn6n                   0/2     Pending   0                5m25s   <none>         <none>    <none>           <none>
+prometheus     prometheus-kube-state-metrics-5bd466f7f6-h28v8       1/1     Running   0                5m25s   10.244.2.6     worker2   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-k6ztj            1/1     Running   0                5m25s   10.128.0.25    worker1   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-rgm8b            1/1     Running   0                5m25s   10.128.0.3     worker3   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-w62hz            1/1     Running   0                5m25s   10.128.0.16    master    <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-zdn82            1/1     Running   0                5m25s   10.128.0.26    worker2   <none>           <none>
+prometheus     prometheus-prometheus-pushgateway-544579d549-kgvmd   1/1     Running   0                5m25s   10.244.2.5     worker2   <none>           <none>
+```
+
+Update helmfile to turn off alertmanager and pushgateway and to fix PVC issue in prometheus, apply it.
+
