@@ -487,17 +487,8 @@ UPDATED RELEASES:
 NAME         NAMESPACE    CHART                             VERSION   DURATION
 prometheus   prometheus   prometheus-community/prometheus   27.5.1          3s
 
-
-
-
-
-
-
-
-
-
-
 ```
+
 
 Since helm does not delete pvc (see: https://github.com/helm/helm/issues/5156#issuecomment-492560732 ), erase them by hand:
 ```
@@ -513,7 +504,21 @@ persistentvolumeclaim "storage-prometheus-alertmanager-0" deleted
 
 Now apply storage config:
 ```
-# kubectl apply -f storage.yaml
+# k apply -f storage.yaml 
+storageclass.storage.k8s.io/local-storage configured
+persistentvolume/worker1-pv1 unchanged
 
+# k get pv -A
+NAME          CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                          STORAGECLASS    VOLUMEATTRIBUTESCLASS   REASON   AGE
+worker1-pv1   8Gi        RWO            Retain           Bound    prometheus/prometheus-server   local-storage   <unset>                          2m29s
+
+# k get pvc -A 
+NAMESPACE    NAME                STATUS   VOLUME        CAPACITY   ACCESS MODES   STORAGECLASS    VOLUMEATTRIBUTESCLASS   AGE
+prometheus   prometheus-server   Bound    worker1-pv1   8Gi        RWO            local-storage   <unset>                 51m
 ```
 
+Access prometheus:
+```
+export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=prometheus,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
+kubectl --namespace prometheus port-forward $POD_NAME 9090
+```
