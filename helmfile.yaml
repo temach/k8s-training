@@ -10,6 +10,10 @@
 repositories:
   - name: istio
     url: https://istio-release.storage.googleapis.com/charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: kiali
+    url: https://kiali.org/helm-charts/
 
 helmDefaults:
   # automatically create release namespaces if they do not exist
@@ -25,3 +29,23 @@ releases:
     namespace: istio-system
     chart: istio/istiod
     version: "1.25.0" 
+
+  - name: prometheus
+    namespace: prometheus
+    chart: prometheus-community/prometheus
+    version: "27.5.1" 
+
+  - name: kiali-operator
+    namespace: kiali
+    chart: kiali/kiali-operator
+    version: "2.7.0"
+    values:
+      - cr:
+          # For what a Kiali CR spec can look like, see: https://kiali.io/docs/configuration/kialis.kiali.io/
+          create: true
+          name: kiali-server
+
+          spec:
+            deployment:
+              service_type: "ClusterIP"
+
