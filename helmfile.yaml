@@ -2,6 +2,10 @@
 # helmfile docs: https://helmfile.readthedocs.io/en/latest/
 # when uninstalling chart, must manually delete pvc/pv
 #
+# add repo:         helm repo add istio https://istio-release.storage.googleapis.com/charts
+# find charts:      helm search repo istio
+# get values.yaml:  helm pull istio/base
+
 
 repositories:
   - name: istio
@@ -15,5 +19,9 @@ releases:
   - name: istio-base
     namespace: istio-system
     chart: istio/base
-    # https://github.com/istio/istio/releases (click on Artifacts)
-    # version: "1.25.0" 
+    version: "1.25.0" 
+
+  - name: istiod
+    namespace: istio-system
+    chart: istio/istiod
+    version: "1.25.0" 
