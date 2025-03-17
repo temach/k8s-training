@@ -34,6 +34,34 @@ releases:
     namespace: prometheus
     chart: prometheus-community/prometheus
     version: "27.5.1" 
+    values:
+      - alertmanager:
+          enabled: false
+
+        prometheus-pushgateway:
+          enabled: false
+
+        server:
+          extraFlags:
+            - web.enable-lifecycle
+            ## web.enable-admin-api flag controls access to the administrative HTTP API which includes functionality such as
+            ## deleting time series. This is disabled by default.
+            - web.enable-admin-api
+
+          persistentVolume:
+            ## If true, Prometheus server will create/use a Persistent Volume Claim
+            ## If false, use emptyDir
+            enabled: true
+
+            ## Prometheus server data Persistent Volume size
+            size: 8Gi
+
+          ## Prometheus data retention period (default if not specified is 15 days)
+          retention: "15d"
+
+          ## Prometheus' data retention size. Supported units: B, KB, MB, GB, TB, PB, EB.
+          retentionSize: "7GB"
+
 
   - name: kiali-operator
     namespace: kiali
@@ -44,6 +72,7 @@ releases:
           # For what a Kiali CR spec can look like, see: https://kiali.io/docs/configuration/kialis.kiali.io/
           create: true
           name: kiali-server
+
           spec:
             deployment:
               service_type: "ClusterIP"
