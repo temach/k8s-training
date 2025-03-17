@@ -1,0 +1,19 @@
+#
+# helmfile docs: https://helmfile.readthedocs.io/en/latest/
+# when uninstalling chart, must manually delete pvc/pv
+#
+
+repositories:
+  - name: istio
+    url: https://istio-release.storage.googleapis.com/charts
+
+helmDefaults:
+  # automatically create release namespaces if they do not exist
+  createNamespace: true
+
+releases:
+  - name: istio-base
+    namespace: istio-system
+    chart: istio/base
+    # https://github.com/istio/istio/releases (click on Artifacts)
+    # version: "1.25.0" 
