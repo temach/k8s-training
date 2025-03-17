@@ -193,4 +193,220 @@ see:
 - https://istio.io/latest/docs/ops/integrations/kiali/
 - https://istio.io/latest/docs/ops/integrations/prometheus/
 
+For kiali-operator its possible to create custom-resource directly in the helm values.yaml, however helmfile does not like that.
+So first comment the installation of "cr:" in helmfile for kiali, install it, then uncomment and install again.
+
+Error shown below:
+```
+# helmfile apply
+...
+Comparing release=kiali-operator, chart=kiali/kiali-operator, namespace=kiali
+in ./helmfile.yaml: command "/usr/local/bin/helm" exited with non-zero status:
+
+PATH:
+  /usr/local/bin/helm
+
+ARGS:
+  0: helm (4 bytes)
+  1: diff (4 bytes)
+  2: upgrade (7 bytes)
+  3: --allow-unreleased (18 bytes)
+  4: kiali-operator (14 bytes)
+  5: kiali/kiali-operator (20 bytes)
+  6: --version (9 bytes)
+  7: 2.7.0 (5 bytes)
+  8: --namespace (11 bytes)
+  9: kiali (5 bytes)
+  10: --values (8 bytes)
+  11: /tmp/helmfile431118674/kiali-kiali-operator-values-66f5d9d464 (61 bytes)
+  12: --detailed-exitcode (19 bytes)
+  13: --color (7 bytes)
+  14: --reset-values (14 bytes)
+
+ERROR:
+  exit status 1
+
+EXIT STATUS
+  1
+
+STDERR:
+  Error: Failed to render chart: exit status 1: Error: unable to build kubernetes objects from release manifest: resource mapping not found for name: "kiali-server" namespace: "" from "": no matches for kind "Kiali" in version "kiali.io/v1alpha1"
+  ensure CRDs are installed first
+  Error: plugin "diff" exited with error
+
+COMBINED OUTPUT:
+  ********************
+  	Release was not present in Helm.  Diff will show entire contents as new.
+  ********************
+  Error: Failed to render chart: exit status 1: Error: unable to build kubernetes objects from release manifest: resource mapping not found for name: "kiali-server" namespace: "" from "": no matches for kind "Kiali" in version "kiali.io/v1alpha1"
+  ensure CRDs are installed first
+  Error: plugin "diff" exited with error
+```
+
+
+Fix helmfile with a comment:
+```
+# vim helmfile.yaml
+# cat helmfile.yaml
+repositories:
+  - name: istio
+    url: https://istio-release.storage.googleapis.com/charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: kiali
+    url: https://kiali.org/helm-charts/
+
+helmDefaults:
+  # automatically create release namespaces if they do not exist
+  createNamespace: true
+
+releases:
+  - name: istio-base
+    namespace: istio-system
+    chart: istio/base
+    version: "1.25.0" 
+
+  - name: istiod
+    namespace: istio-system
+    chart: istio/istiod
+    version: "1.25.0" 
+
+  - name: prometheus
+    namespace: prometheus
+    chart: prometheus-community/prometheus
+    version: "27.5.1" 
+
+  - name: kiali-operator
+    namespace: kiali
+    chart: kiali/kiali-operator
+    version: "2.7.0"
+    # values:
+    #   - cr:
+    #       # For what a Kiali CR spec can look like, see: https://kiali.io/docs/configuration/kialis.kiali.io/
+    #       create: true
+    #       name: kiali-server
+    #       spec:
+    #         deployment:
+    #           service_type: "ClusterIP"
+```
+
+Install again:
+```
+# helmfile apply
+Upgrading release=prometheus, chart=prometheus-community/prometheus, namespace=prometheus
+Upgrading release=kiali-operator, chart=kiali/kiali-operator, namespace=kiali
+Release "kiali-operator" does not exist. Installing it now.
+NAME: kiali-operator
+LAST DEPLOYED: Mon Mar 17 14:19:43 2025
+NAMESPACE: kiali
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Welcome to Kiali! For more details on Kiali, see: https://kiali.io
+
+The Kiali Operator [v2.7.0] has been installed in namespace [kiali]. It will be ready soon.
+You have elected not to install a Kiali CR. You must first install a Kiali CR before you can access Kiali. The operator is watching all namespaces, so you can create the Kiali CR anywhere.
+
+If you ever want to uninstall the Kiali Operator, remember to delete the Kiali CR first before uninstalling the operator to give the operator a chance to uninstall and remove all the Kiali Server resources.
+
+(Helm: Chart=[kiali-operator], Release=[kiali-operator], Version=[2.7.0])
+
+Listing releases matching ^kiali-operator$
+Release "prometheus" does not exist. Installing it now.
+NAME: prometheus
+LAST DEPLOYED: Mon Mar 17 14:19:42 2025
+NAMESPACE: prometheus
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The Prometheus server can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-server.prometheus.svc.cluster.local
+
+
+Get the Prometheus server URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=prometheus,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace prometheus port-forward $POD_NAME 9090
+
+
+The Prometheus alertmanager can be accessed via port 9093 on the following DNS name from within your cluster:
+prometheus-alertmanager.prometheus.svc.cluster.local
+
+
+Get the Alertmanager URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=alertmanager,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace prometheus port-forward $POD_NAME 9093
+#################################################################################
+######   WARNING: Pod Security Policy has been disabled by default since    #####
+######            it deprecated after k8s 1.25+. use                        #####
+######            (index .Values "prometheus-node-exporter" "rbac"          #####
+###### .          "pspEnabled") with (index .Values                         #####
+######            "prometheus-node-exporter" "rbac" "pspAnnotations")       #####
+######            in case you still need it.                                #####
+#################################################################################
+
+
+The Prometheus PushGateway can be accessed via port 9091 on the following DNS name from within your cluster:
+prometheus-prometheus-pushgateway.prometheus.svc.cluster.local
+
+
+Get the PushGateway URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace prometheus -l "app=prometheus-pushgateway,component=pushgateway" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace prometheus port-forward $POD_NAME 9091
+
+For more information on running Prometheus, visit:
+https://prometheus.io/
+
+Listing releases matching ^prometheus$
+kiali-operator	kiali    	1       	2025-03-17 14:19:43.52301062 +0000 UTC	deployed	kiali-operator-2.7.0	v2.7.0     
+
+prometheus	prometheus	1       	2025-03-17 14:19:42.681917669 +0000 UTC	deployed	prometheus-27.5.1	v3.2.1     
+
+
+UPDATED RELEASES:
+NAME             NAMESPACE    CHART                             VERSION   DURATION
+kiali-operator   kiali        kiali/kiali-operator              2.7.0           3s
+prometheus       prometheus   prometheus-community/prometheus   27.5.1          3s
+
+```
+
+
+Uncomment and install again, now kiali-server CustomResource should get applied and the kiali server will be installed:
+```
+# vim helmfile.yaml
+# helmfile apply
+...
+Upgrading release=kiali-operator, chart=kiali/kiali-operator, namespace=kiali
+Release "kiali-operator" has been upgraded. Happy Helming!
+NAME: kiali-operator
+LAST DEPLOYED: Mon Mar 17 14:22:12 2025
+NAMESPACE: kiali
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+Welcome to Kiali! For more details on Kiali, see: https://kiali.io
+
+The Kiali Operator [v2.7.0] has been installed in namespace [kiali]. It will be ready soon.
+You have elected to install a Kiali CR in the same namespace as the operator [kiali]. You should be able to access Kiali soon.
+
+================================
+PLEASE READ THIS WARNING NOTICE:
+Because the Kiali CR lives in the same namespace as the operator, DO NOT uninstall the operator or delete the operator namespace without first removing the Kiali CR. If you do not follow this advice then the Kiali Operator deletion will hang indefinitely until you remove the finalizer from the Kiali CR, and then you may find your Kubernetes environment still has Kiali Server remnants left behind.
+================================
+
+If you ever want to uninstall the Kiali Operator, remember to delete the Kiali CR first before uninstalling the operator to give the operator a chance to uninstall and remove all the Kiali Server resources.
+
+(Helm: Chart=[kiali-operator], Release=[kiali-operator], Version=[2.7.0])
+
+Listing releases matching ^kiali-operator$
+kiali-operator	kiali    	2       	2025-03-17 14:22:12.692527255 +0000 UTC	deployed	kiali-operator-2.7.0	v2.7.0     
+
+
+UPDATED RELEASES:
+NAME             NAMESPACE   CHART                  VERSION   DURATION
+kiali-operator   kiali       kiali/kiali-operator   2.7.0           1s
+```
+
 

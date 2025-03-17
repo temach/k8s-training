@@ -44,7 +44,6 @@ releases:
           # For what a Kiali CR spec can look like, see: https://kiali.io/docs/configuration/kialis.kiali.io/
           create: true
           name: kiali-server
-
           spec:
             deployment:
               service_type: "ClusterIP"
