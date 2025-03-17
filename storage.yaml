@@ -5,7 +5,7 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: kubernetes.io/no-provisioner # indicates that this StorageClass does not support automatic provisioning
-reclaimPolicy: Retain  # indicates that volume will remain even after PVC is deleted (default for static provisioned)
+reclaimPolicy: Delete  # once PVC is deleted PV data will delete as well (default for dynamic/auto provisined)
 volumeBindingMode: WaitForFirstConsumer
 ---
 apiVersion: v1
@@ -18,7 +18,6 @@ spec:
   volumeMode: Filesystem
   accessModes:
   - ReadWriteOnce
-  # persistentVolumeReclaimPolicy: Retain
   storageClassName: local-storage
   local:
     # full path to storage volume on node

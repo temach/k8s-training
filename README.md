@@ -445,5 +445,75 @@ prometheus     prometheus-prometheus-node-exporter-zdn82            1/1     Runn
 prometheus     prometheus-prometheus-pushgateway-544579d549-kgvmd   1/1     Running   0                5m25s   10.244.2.5     worker2   <none>           <none>
 ```
 
-Update helmfile to turn off alertmanager and pushgateway and to fix PVC issue in prometheus, apply it.
+Update helmfile to turn off alertmanager and pushgateway and to fix PVC issue in prometheus, apply it:
+```
+# helmfile apply
+...
+Upgrading release=prometheus, chart=prometheus-community/prometheus, namespace=prometheus
+Release "prometheus" has been upgraded. Happy Helming!
+NAME: prometheus
+LAST DEPLOYED: Mon Mar 17 15:01:23 2025
+NAMESPACE: prometheus
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+The Prometheus server can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-server.prometheus.svc.cluster.local
+
+
+Get the Prometheus server URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=prometheus,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace prometheus port-forward $POD_NAME 9090
+
+
+#################################################################################
+######   WARNING: Pod Security Policy has been disabled by default since    #####
+######            it deprecated after k8s 1.25+. use                        #####
+######            (index .Values "prometheus-node-exporter" "rbac"          #####
+###### .          "pspEnabled") with (index .Values                         #####
+######            "prometheus-node-exporter" "rbac" "pspAnnotations")       #####
+######            in case you still need it.                                #####
+#################################################################################
+
+For more information on running Prometheus, visit:
+https://prometheus.io/
+
+Listing releases matching ^prometheus$
+prometheus	prometheus	2       	2025-03-17 15:01:23.127247049 +0000 UTC	deployed	prometheus-27.5.1	v3.2.1     
+
+
+UPDATED RELEASES:
+NAME         NAMESPACE    CHART                             VERSION   DURATION
+prometheus   prometheus   prometheus-community/prometheus   27.5.1          3s
+
+
+
+
+
+
+
+
+
+
+
+```
+
+Since helm does not delete pvc (see: https://github.com/helm/helm/issues/5156#issuecomment-492560732 ), erase them by hand:
+```
+# k get pvc -A
+NAMESPACE    NAME                                STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS    VOLUMEATTRIBUTESCLASS   AGE
+prometheus   prometheus-server                   Pending                                      local-storage   <unset>                 44m
+prometheus   storage-prometheus-alertmanager-0   Pending                                      local-storage   <unset>                 44m
+
+# k -n prometheus delete pvc storage-prometheus-alertmanager-0
+persistentvolumeclaim "storage-prometheus-alertmanager-0" deleted
+```
+
+
+Now apply storage config:
+```
+# kubectl apply -f storage.yaml
+
+```
 
