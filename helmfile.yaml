@@ -46,6 +46,11 @@ releases:
               service_type: "ClusterIP"
             auth:
               strategy: "anonymous"
+            external_services:
+              custom_dashboards:
+                prometheus:
+                  # by default assumes wrong address: https://kiali.io/docs/configuration/kialis.kiali.io/#.spec.external_services.custom_dashboards.prometheus.url
+                  url: "http://prometheus.prometheus-server:80"
 
   - name: prometheus
     namespace: prometheus
