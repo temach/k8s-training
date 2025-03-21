@@ -533,7 +533,7 @@ kubectl --namespace prometheus port-forward $POD_NAME 9090
 ```
 
 
-### Uninstalling
+### Uninstal and a clean final re-install
 
 If re-install is necessary it can be quite difficult to uninstall kiali, see:
 - https://kiali.io/docs/installation/installation-guide/example-install/#uninstall-kiali-operator
@@ -619,7 +619,7 @@ $  yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name w
 ```
 
 
-### Clean Reinstall
+### Clean re-install
 ```
 # cd k8s-training/
 # helmfile apply
@@ -742,3 +742,62 @@ istio-base       istio-system   istio/base                        1.25.0        
 kiali-operator   kiali          kiali/kiali-operator              2.7.0           5s
 prometheus       prometheus     prometheus-community/prometheus   27.5.1          6s
 ```
+
+Check that kiali custom resource has been created, wait 10-15 minutes and then service + deployment should also get created:
+```
+$ k get kialis.kiali.io -A
+NAMESPACE   NAME           AGE
+kiali       kiali-server   157m
+
+$ k get svc -A
+NAMESPACE      NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                                 AGE
+default        kubernetes                            ClusterIP   10.255.0.1       <none>        443/TCP                                 54d
+home           http-server                           ClusterIP   10.255.36.158    <none>        8000/TCP                                28d
+istio-system   istiod                                ClusterIP   10.255.78.29     <none>        15010/TCP,15012/TCP,443/TCP,15014/TCP   173m
+kiali          kiali                                 ClusterIP   10.255.231.137   <none>        20001/TCP,9090/TCP                      162m
+kube-system    kube-dns                              ClusterIP   10.255.0.10      <none>        53/UDP,53/TCP,9153/TCP                  54d
+prometheus     prometheus-kube-state-metrics         ClusterIP   10.255.244.83    <none>        8080/TCP                                173m
+prometheus     prometheus-prometheus-node-exporter   ClusterIP   10.255.81.124    <none>        9100/TCP                                173m
+prometheus     prometheus-server                     ClusterIP   10.255.20.134    <none>        80/TCP                                  173m
+
+$ k get pods -A -o wide
+NAMESPACE      NAME                                             READY   STATUS    RESTARTS         AGE     IP             NODE      NOMINATED NODE   READINESS GATES
+home           http-server-56bb7f7b5b-6hnnf                     1/1     Running   10 (7h46m ago)   8d      10.244.1.114   worker1   <none>           <none>
+home           http-server-56bb7f7b5b-b4rm5                     1/1     Running   10 (7h46m ago)   8d      10.244.1.115   worker1   <none>           <none>
+home           http-server-56bb7f7b5b-f2btm                     1/1     Running   10 (7h46m ago)   8d      10.244.1.111   worker1   <none>           <none>
+home           http-server-56bb7f7b5b-rbvk2                     1/1     Running   13 (7h46m ago)   21d     10.244.1.112   worker1   <none>           <none>
+istio-system   istiod-558554f5df-hrd7f                          1/1     Running   0                176m    10.244.3.4     worker3   <none>           <none>
+kiali          kiali-84cd7d5ccd-zzs8m                           1/1     Running   0                164m    10.244.2.15    worker2   <none>           <none>
+kiali          kiali-operator-6bcdcb6998-wffm9                  1/1     Running   0                176m    10.244.2.13    worker2   <none>           <none>
+kube-flannel   kube-flannel-ds-hjwfh                            1/1     Running   5 (7h44m ago)    4d21h   10.128.0.16    master    <none>           <none>
+kube-flannel   kube-flannel-ds-q2gl4                            1/1     Running   18 (7h44m ago)   4d22h   10.128.0.26    worker2   <none>           <none>
+kube-flannel   kube-flannel-ds-sq6s7                            1/1     Running   6 (7h44m ago)    4d21h   10.128.0.3     worker3   <none>           <none>
+kube-flannel   kube-flannel-ds-sx6qk                            1/1     Running   5 (7h46m ago)    4d21h   10.128.0.25    worker1   <none>           <none>
+kube-system    coredns-7c65d6cfc9-gmzxw                         1/1     Running   3 (7h46m ago)    4d21h   10.244.2.12    worker2   <none>           <none>
+kube-system    coredns-7c65d6cfc9-pk4xt                         1/1     Running   15 (7h46m ago)   23d     10.244.0.28    master    <none>           <none>
+kube-system    etcd-master                                      1/1     Running   21 (7h46m ago)   53d     10.128.0.16    master    <none>           <none>
+kube-system    kube-apiserver-master                            1/1     Running   21 (7h46m ago)   53d     10.128.0.16    master    <none>           <none>
+kube-system    kube-controller-manager-master                   1/1     Running   22 (7h46m ago)   53d     10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-bp57z                                 1/1     Running   8 (7h46m ago)    7d16h   10.128.0.25    worker1   <none>           <none>
+kube-system    kube-proxy-hkklk                                 1/1     Running   7 (7h46m ago)    7d16h   10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-x4qcl                                 1/1     Running   4 (7h46m ago)    4d22h   10.128.0.26    worker2   <none>           <none>
+kube-system    kube-proxy-z5ztj                                 1/1     Running   5 (7h46m ago)    4d22h   10.128.0.3     worker3   <none>           <none>
+kube-system    kube-scheduler-master                            1/1     Running   17 (7h46m ago)   23d     10.128.0.16    master    <none>           <none>
+prometheus     prometheus-kube-state-metrics-5bd466f7f6-ngq95   1/1     Running   0                176m    10.244.2.14    worker2   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-97rmf        1/1     Running   0                176m    10.128.0.26    worker2   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-pkqmh        1/1     Running   0                176m    10.128.0.25    worker1   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-qlx2v        1/1     Running   0                176m    10.128.0.16    master    <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-x5jwx        1/1     Running   0                176m    10.128.0.3     worker3   <none>           <none>
+prometheus     prometheus-server-88cb5cb78-ggqcp                2/2     Running   0                176m    10.244.1.116   worker1   <none>           <none>
+```
+
+# Enjoy the service mesh
+
+Forward port to UI from local machine:
+```
+$ k port-forward -n kiali svc/kiali 30000:20001
+Forwarding from 127.0.0.1:30000 -> 20001
+Forwarding from [::1]:30000 -> 20001
+```
+
+
