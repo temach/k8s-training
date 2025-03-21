@@ -623,6 +623,7 @@ $  yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name w
 ```
 # cd k8s-training/
 # helmfile apply
+...
 Upgrading release=istio-base, chart=istio/base, namespace=istio-system
 Upgrading release=prometheus, chart=prometheus-community/prometheus, namespace=prometheus
 Upgrading release=istiod, chart=istio/istiod, namespace=istio-system
