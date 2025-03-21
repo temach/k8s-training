@@ -596,11 +596,148 @@ If necessary remove finalisers on crd:
 Helm and helmfile remove pvc, but they do not remove PV (see: https://github.com/helm/helm/issues/5156 ):
 ```
 # k get pv -o wide
+# k delete pv worker1-pv1
 ```
+
+However after deleting PV, it must be recreated, so new deployments can use it.
+```
+# kubectl apply -f storage.yaml
+```
+
+Alternative is to unbind PV manually by deleting claimRef and possibly finalisers, then PV itself is freed and can be re-used:
+```
+# kubectl patch pv worker1-pv1 -p '{"spec":{"claimRef": []}}' --type=merge
+# kubectl patch pv worker1-pv1 -p '{"metadata":{"finalizers": []}}' --type=merge
+```
+
 
 After removing PV, if using static storage provisioning, remember to find the folder and clear its contents:
 ```
 $  yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name worker1
 # cd /opt/my-local-storage/worker1-pv1/
 # rm -rf ./*
+```
+
+
+### Clean Reinstall
+```
+# cd k8s-training/
+# helmfile apply
+Upgrading release=istio-base, chart=istio/base, namespace=istio-system
+Upgrading release=prometheus, chart=prometheus-community/prometheus, namespace=prometheus
+Upgrading release=istiod, chart=istio/istiod, namespace=istio-system
+Upgrading release=kiali-operator, chart=kiali/kiali-operator, namespace=kiali
+Release "istiod" does not exist. Installing it now.
+NAME: istiod
+LAST DEPLOYED: Fri Mar 21 13:12:00 2025
+NAMESPACE: istio-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+"istiod" successfully installed!
+
+To learn more about the release, try:
+  $ helm status istiod -n istio-system
+  $ helm get all istiod -n istio-system
+
+Next steps:
+  * Deploy a Gateway: https://istio.io/latest/docs/setup/additional-setup/gateway/
+  * Try out our tasks to get started on common configurations:
+    * https://istio.io/latest/docs/tasks/traffic-management
+    * https://istio.io/latest/docs/tasks/security/
+    * https://istio.io/latest/docs/tasks/policy-enforcement/
+  * Review the list of actively supported releases, CVE publications and our hardening guide:
+    * https://istio.io/latest/docs/releases/supported-releases/
+    * https://istio.io/latest/news/security/
+    * https://istio.io/latest/docs/ops/best-practices/security/
+
+For further documentation see https://istio.io website
+
+Listing releases matching ^istiod$
+istiod	istio-system	1       	2025-03-21 13:12:00.636523782 +0000 UTC	deployed	istiod-1.25.0	1.25.0     
+
+Release "istio-base" does not exist. Installing it now.
+NAME: istio-base
+LAST DEPLOYED: Fri Mar 21 13:12:00 2025
+NAMESPACE: istio-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Istio base successfully installed!
+
+To learn more about the release, try:
+  $ helm status istio-base -n istio-system
+  $ helm get all istio-base -n istio-system
+
+Listing releases matching ^istio-base$
+Release "kiali-operator" does not exist. Installing it now.
+NAME: kiali-operator
+LAST DEPLOYED: Fri Mar 21 13:12:02 2025
+NAMESPACE: kiali
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Welcome to Kiali! For more details on Kiali, see: https://kiali.io
+
+The Kiali Operator [v2.7.0] has been installed in namespace [kiali]. It will be ready soon.
+You have elected to install a Kiali CR in the same namespace as the operator [kiali]. You should be able to access Kiali soon.
+
+================================
+PLEASE READ THIS WARNING NOTICE:
+Because the Kiali CR lives in the same namespace as the operator, DO NOT uninstall the operator or delete the operator namespace without first removing the Kiali CR. If you do not follow this advice then the Kiali Operator deletion will hang indefinitely until you remove the finalizer from the Kiali CR, and then you may find your Kubernetes environment still has Kiali Server remnants left behind.
+================================
+
+If you ever want to uninstall the Kiali Operator, remember to delete the Kiali CR first before uninstalling the operator to give the operator a chance to uninstall and remove all the Kiali Server resources.
+
+(Helm: Chart=[kiali-operator], Release=[kiali-operator], Version=[2.7.0])
+
+Listing releases matching ^kiali-operator$
+istio-base	istio-system	1       	2025-03-21 13:12:00.536986713 +0000 UTC	deployed	base-1.25.0	1.25.0     
+
+kiali-operator	kiali    	1       	2025-03-21 13:12:02.516926011 +0000 UTC	deployed	kiali-operator-2.7.0	v2.7.0     
+
+Release "prometheus" does not exist. Installing it now.
+NAME: prometheus
+LAST DEPLOYED: Fri Mar 21 13:12:02 2025
+NAMESPACE: prometheus
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+The Prometheus server can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-server.prometheus.svc.cluster.local
+
+
+Get the Prometheus server URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=prometheus,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace prometheus port-forward $POD_NAME 9090
+
+
+#################################################################################
+######   WARNING: Pod Security Policy has been disabled by default since    #####
+######            it deprecated after k8s 1.25+. use                        #####
+######            (index .Values "prometheus-node-exporter" "rbac"          #####
+###### .          "pspEnabled") with (index .Values                         #####
+######            "prometheus-node-exporter" "rbac" "pspAnnotations")       #####
+######            in case you still need it.                                #####
+#################################################################################
+
+
+
+For more information on running Prometheus, visit:
+https://prometheus.io/
+
+Listing releases matching ^prometheus$
+prometheus	prometheus	1       	2025-03-21 13:12:02.168605986 +0000 UTC	deployed	prometheus-27.5.1	v3.2.1     
+
+
+UPDATED RELEASES:
+NAME             NAMESPACE      CHART                             VERSION   DURATION
+istiod           istio-system   istio/istiod                      1.25.0          3s
+istio-base       istio-system   istio/base                        1.25.0          5s
+kiali-operator   kiali          kiali/kiali-operator              2.7.0           5s
+prometheus       prometheus     prometheus-community/prometheus   27.5.1          6s
 ```
