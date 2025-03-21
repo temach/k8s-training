@@ -35,7 +35,7 @@ releases:
     chart: kiali/kiali-operator
     version: "2.7.0"
     # disable CRD checks, so single helmfile apply installs everything
-    disableValidationOnInstall: false
+    disableValidationOnInstall: true
     values:
       - cr:
           # For what a Kiali CR spec can look like, see: https://kiali.io/docs/configuration/kialis.kiali.io/
