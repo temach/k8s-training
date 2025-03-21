@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   name: home
   labels:
+    # label to activate istio
     istio-injection: enabled
 
 ---
@@ -26,6 +27,9 @@ kind: Deployment
 metadata:
   name: http-server
   namespace: home
+  labels:
+    # set version, else kiali shows warning
+    app.kubernetes.io/version: 0.6.9
 spec:
   replicas: 4
   selector:
