@@ -1,6 +1,6 @@
 # k8s-training
 
-# Install istio
+# Install istio, kiali, prometheus
 
 ### lecture live demo
 
@@ -184,19 +184,11 @@ kube-system    kube-scheduler-master            1/1     Running   16 (3h18m ago)
 ```
 
 
-
-# Install kiali and prometheus
-
-Edit helmfile to add the two charts.
-
-see:
-- https://istio.io/latest/docs/ops/integrations/kiali/
-- https://istio.io/latest/docs/ops/integrations/prometheus/
-
-
 ### Install kiali
 
-For kiali-operator its possible to create custom-resource directly in the helm values.yaml, however helmfile does not like that.
+See: https://istio.io/latest/docs/ops/integrations/kiali/
+
+For kiali-operator its possible to create custom-resource directly in the helm values.yaml, but first time do things by hand.
 So first comment the installation of "cr:" in helmfile for kiali, install it, then uncomment and install again.
 
 Error shown below:
@@ -419,6 +411,8 @@ Fix the helmfile for the future, by disabling CRD validation for kiali release:
 
 ### Install prometheus
 
+See: https://istio.io/latest/docs/ops/integrations/prometheus/
+
 At this point prometheus and alertmanager do not start, due to persistent volume requirements:
 ```
 # k get pods -A -o wide
@@ -533,7 +527,7 @@ kubectl --namespace prometheus port-forward $POD_NAME 9090
 ```
 
 
-### Uninstal and a clean final re-install
+### Uninstal and clean re-install
 
 If re-install is necessary it can be quite difficult to uninstall kiali, see:
 - https://kiali.io/docs/installation/installation-guide/example-install/#uninstall-kiali-operator
@@ -619,7 +613,7 @@ $  yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name w
 ```
 
 
-### Clean re-install
+# Clean re-install with one helmfile
 ```
 # cd k8s-training/
 # helmfile apply
@@ -791,6 +785,77 @@ prometheus     prometheus-prometheus-node-exporter-x5jwx        1/1     Running 
 prometheus     prometheus-server-88cb5cb78-ggqcp                2/2     Running   0                176m    10.244.1.116   worker1   <none>           <none>
 ```
 
+# netshoot container to troubleshoot/debug if necessary
+
+Overview of tools and a guide: https://hub.docker.com/r/nicolaka/netshoot
+
+Kiali used wrong prometheus url by default (see: https://kiali.io/docs/configuration/kialis.kiali.io/#.spec.external_services.prometheus.url )
+To diagnose use nicolaka/netshoot image.
+
+Attach to kiali pod:
+```
+# k debug -it --profile=sysadmin --image=nicolaka/netshoot -n kiali --target=kiali pod/kiali-654966dc55-tmc8k
+kiali-654966dc55-tmc8k  ~  ps auxf
+PID   USER     TIME  COMMAND
+    1 1000      0:01 /opt/kiali/kiali -config /kiali-configuration/config.yaml
+   15 root      0:01 zsh
+  222 root      0:00 ps auxf
+
+kiali-654966dc55-tmc8k  ~  grep prometheus-server /proc/1/root/kiali-configuration/config.yaml
+    url: http://prometheus-server.prometheus:80
+
+Session ended, the ephemeral container will not be restarted but may be reattached using 'kubectl attach kiali-654966dc55-tmc8k -c debugger-j5jxx -i -t' if it is still running
+
+
+
+# k describe -n kiali pod/kiali-654966dc55-tmc8k
+...
+Ephemeral Containers:
+  debugger-j5jxx:
+    Container ID:   docker://fe1077892acb9f516edbda09eb97badc8d239afe90790fa102f7c488ad8a10e7
+    Image:          nicolaka/netshoot
+    Image ID:       docker-pullable://nicolaka/netshoot@sha256:a20c2531bf35436ed3766cd6cfe89d352b050ccc4d7005ce6400adf97503da1b
+    Port:           <none>
+    Host Port:      <none>
+    State:          Terminated
+      Reason:       Error
+      Exit Code:    130
+      Started:      Sat, 22 Mar 2025 01:32:13 +0500
+      Finished:     Sat, 22 Mar 2025 01:34:00 +0500
+    Ready:          False
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:         <none>
+...
+```
+
+Just run it in the same namespace (it does not auto-terminate):
+```
+# k run -it -n kiali netshoot1 --image=nicolaka/netshoot
+$ curl http://prometheus-server.prometheus:80/
+* Host prometheus-server.prometheus:80 was resolved.
+* IPv6: (none)
+* IPv4: 10.255.20.134
+*   Trying 10.255.20.134:80...
+* Connected to prometheus-server.prometheus (10.255.20.134) port 80
+> GET / HTTP/1.1
+> Host: prometheus-server.prometheus
+> User-Agent: curl/8.7.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 302 Found
+< Content-Type: text/html; charset=utf-8
+< Location: /query
+< Date: Fri, 21 Mar 2025 20:18:26 GMT
+< Content-Length: 29
+< 
+<a href="/query">Found</a>.
+
+Session ended, resume using 'kubectl attach netshoot1 -c netshoot1 -i -t' command when the pod is running
+```
+
+
 # Enjoy the service mesh
 
 Forward port to UI from local machine:
@@ -800,4 +865,7 @@ Forwarding from 127.0.0.1:30000 -> 20001
 Forwarding from [::1]:30000 -> 20001
 ```
 
+### Deploy an app with istio
+
+Must add istio label and deploy:
 
