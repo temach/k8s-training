@@ -44,13 +44,13 @@ Create helmfile, must also get chart version numbers.
 # helm repo add istio https://istio-release.storage.googleapis.com/charts
 
 # helm search repo istio
-NAME               	CHART VERSION	APP VERSION	DESCRIPTION                                       
-istio/istiod       	1.25.0       	1.25.0     	Helm chart for istio control plane                
+NAME               	CHART VERSION	APP VERSION	DESCRIPTION
+istio/istiod       	1.25.0       	1.25.0     	Helm chart for istio control plane
 istio/istiod-remote	1.23.5       	1.23.5     	Helm chart for a remote cluster using an extern...
-istio/ambient      	1.25.0       	1.25.0     	Helm umbrella chart for ambient                   
+istio/ambient      	1.25.0       	1.25.0     	Helm umbrella chart for ambient
 istio/base         	1.25.0       	1.25.0     	Helm chart for deploying Istio cluster resource...
-istio/cni          	1.25.0       	1.25.0     	Helm chart for istio-cni components               
-istio/gateway      	1.25.0       	1.25.0     	Helm chart for deploying Istio gateways           
+istio/cni          	1.25.0       	1.25.0     	Helm chart for istio-cni components
+istio/gateway      	1.25.0       	1.25.0     	Helm chart for deploying Istio gateways
 istio/ztunnel      	1.25.0       	1.25.0     	Helm chart for istio ztunnel components
 
 # helm pull istio/base
@@ -61,7 +61,7 @@ drwxr-xr-x  2 root root  4096 Mar 17 13:46 .
 drwx------ 10 root root  4096 Mar 17 13:29 ..
 -rw-r--r--  1 root root 70022 Mar 17 13:46 base-1.25.0.tgz
 
-# unp base-1.25.0.tgz 
+# unp base-1.25.0.tgz
 base/Chart.yaml
 base/values.yaml
 base/templates/NOTES.txt
@@ -87,7 +87,7 @@ base/files/profile-preview.yaml
 base/files/profile-remote.yaml
 base/files/profile-stable.yaml
 
-# cat base/values.yaml 
+# cat base/values.yaml
 ```
 
 
@@ -131,7 +131,7 @@ Next steps:
 For further documentation see https://istio.io website
 
 Listing releases matching ^istiod$
-istiod	istio-system	1       	2025-03-17 13:53:30.078896236 +0000 UTC	deployed	istiod-1.25.0	1.25.0     
+istiod	istio-system	1       	2025-03-17 13:53:30.078896236 +0000 UTC	deployed	istiod-1.25.0	1.25.0
 
 Release "istio-base" does not exist. Installing it now.
 NAME: istio-base
@@ -148,7 +148,7 @@ To learn more about the release, try:
   $ helm get all istio-base -n istio-system
 
 Listing releases matching ^istio-base$
-istio-base	istio-system	1       	2025-03-17 13:53:29.82126773 +0000 UTC	deployed	base-1.25.0	1.25.0     
+istio-base	istio-system	1       	2025-03-17 13:53:29.82126773 +0000 UTC	deployed	base-1.25.0	1.25.0
 
 
 UPDATED RELEASES:
@@ -192,6 +192,9 @@ Edit helmfile to add the two charts.
 see:
 - https://istio.io/latest/docs/ops/integrations/kiali/
 - https://istio.io/latest/docs/ops/integrations/prometheus/
+
+
+### Install kiali
 
 For kiali-operator its possible to create custom-resource directly in the helm values.yaml, however helmfile does not like that.
 So first comment the installation of "cr:" in helmfile for kiali, install it, then uncomment and install again.
@@ -264,17 +267,17 @@ releases:
   - name: istio-base
     namespace: istio-system
     chart: istio/base
-    version: "1.25.0" 
+    version: "1.25.0"
 
   - name: istiod
     namespace: istio-system
     chart: istio/istiod
-    version: "1.25.0" 
+    version: "1.25.0"
 
   - name: prometheus
     namespace: prometheus
     chart: prometheus-community/prometheus
-    version: "27.5.1" 
+    version: "27.5.1"
 
   - name: kiali-operator
     namespace: kiali
@@ -359,9 +362,9 @@ For more information on running Prometheus, visit:
 https://prometheus.io/
 
 Listing releases matching ^prometheus$
-kiali-operator	kiali    	1       	2025-03-17 14:19:43.52301062 +0000 UTC	deployed	kiali-operator-2.7.0	v2.7.0     
+kiali-operator	kiali    	1       	2025-03-17 14:19:43.52301062 +0000 UTC	deployed	kiali-operator-2.7.0	v2.7.0
 
-prometheus	prometheus	1       	2025-03-17 14:19:42.681917669 +0000 UTC	deployed	prometheus-27.5.1	v3.2.1     
+prometheus	prometheus	1       	2025-03-17 14:19:42.681917669 +0000 UTC	deployed	prometheus-27.5.1	v3.2.1
 
 
 UPDATED RELEASES:
@@ -401,7 +404,7 @@ If you ever want to uninstall the Kiali Operator, remember to delete the Kiali C
 (Helm: Chart=[kiali-operator], Release=[kiali-operator], Version=[2.7.0])
 
 Listing releases matching ^kiali-operator$
-kiali-operator	kiali    	2       	2025-03-17 14:22:12.692527255 +0000 UTC	deployed	kiali-operator-2.7.0	v2.7.0     
+kiali-operator	kiali    	2       	2025-03-17 14:22:12.692527255 +0000 UTC	deployed	kiali-operator-2.7.0	v2.7.0
 
 
 UPDATED RELEASES:
@@ -409,6 +412,12 @@ NAME             NAMESPACE   CHART                  VERSION   DURATION
 kiali-operator   kiali       kiali/kiali-operator   2.7.0           1s
 ```
 
+Fix the helmfile for the future, by disabling CRD validation for kiali release:
+```
+    disableValidationOnInstall: false
+```
+
+### Install prometheus
 
 At this point prometheus and alertmanager do not start, due to persistent volume requirements:
 ```
@@ -480,7 +489,7 @@ For more information on running Prometheus, visit:
 https://prometheus.io/
 
 Listing releases matching ^prometheus$
-prometheus	prometheus	2       	2025-03-17 15:01:23.127247049 +0000 UTC	deployed	prometheus-27.5.1	v3.2.1     
+prometheus	prometheus	2       	2025-03-17 15:01:23.127247049 +0000 UTC	deployed	prometheus-27.5.1	v3.2.1
 
 
 UPDATED RELEASES:
@@ -504,7 +513,7 @@ persistentvolumeclaim "storage-prometheus-alertmanager-0" deleted
 
 Now apply storage config:
 ```
-# k apply -f storage.yaml 
+# k apply -f storage.yaml
 storageclass.storage.k8s.io/local-storage configured
 persistentvolume/worker1-pv1 unchanged
 
@@ -512,7 +521,7 @@ persistentvolume/worker1-pv1 unchanged
 NAME          CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                          STORAGECLASS    VOLUMEATTRIBUTESCLASS   REASON   AGE
 worker1-pv1   8Gi        RWO            Retain           Bound    prometheus/prometheus-server   local-storage   <unset>                          2m29s
 
-# k get pvc -A 
+# k get pvc -A
 NAMESPACE    NAME                STATUS   VOLUME        CAPACITY   ACCESS MODES   STORAGECLASS    VOLUMEATTRIBUTESCLASS   AGE
 prometheus   prometheus-server   Bound    worker1-pv1   8Gi        RWO            local-storage   <unset>                 51m
 ```
@@ -521,4 +530,65 @@ Access prometheus:
 ```
 export POD_NAME=$(kubectl get pods --namespace prometheus -l "app.kubernetes.io/name=prometheus,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
 kubectl --namespace prometheus port-forward $POD_NAME 9090
+```
+
+
+### Uninstalling
+
+If re-install is necessary it can be quite difficult to uninstall kiali, see:
+- https://kiali.io/docs/installation/installation-guide/example-install/#uninstall-kiali-operator
+- https://pre-v1-41.kiali.io/documentation/v1.24/installation-guide/#_known_problem_uninstall_hangs
+
+Verify that all resources are gone:
+```
+# kubectl get apiservices -A -o wide
+NAME                              SERVICE   AVAILABLE   AGE
+v1.                               Local     True        54d
+v1.admissionregistration.k8s.io   Local     True        54d
+v1.apiextensions.k8s.io           Local     True        54d
+v1.apps                           Local     True        54d
+v1.authentication.k8s.io          Local     True        54d
+v1.authorization.k8s.io           Local     True        54d
+v1.autoscaling                    Local     True        54d
+v1.batch                          Local     True        54d
+v1.certificates.k8s.io            Local     True        54d
+v1.coordination.k8s.io            Local     True        54d
+v1.discovery.k8s.io               Local     True        54d
+v1.events.k8s.io                  Local     True        54d
+v1.flowcontrol.apiserver.k8s.io   Local     True        54d
+v1.networking.k8s.io              Local     True        54d
+v1.node.k8s.io                    Local     True        54d
+v1.policy                         Local     True        54d
+v1.rbac.authorization.k8s.io      Local     True        54d
+v1.scheduling.k8s.io              Local     True        54d
+v1.storage.k8s.io                 Local     True        54d
+
+# kubectl api-resources -o wide
+NAME                                SHORTNAMES   APIVERSION                        NAMESPACED   KIND                               VERBS                                                        CATEGORIES
+bindings                                         v1                                true         Binding                            create
+componentstatuses                   cs           v1                                false        ComponentStatus                    get,list
+configmaps                          cm           v1                                true         ConfigMap                          create,delete,deletecollection,get,list,patch,update,watch
+endpoints                           ep           v1                                true         Endpoints                          create,delete,deletecollection,get,list,patch,update,watch
+events                              ev           v1                                true         Event                              create,delete,deletecollection,get,list,patch,update,watch
+limitranges                         limits       v1                                true         LimitRange                         create,delete,deletecollection,get,list,patch,update,watch
+namespaces                          ns           v1                                false        Namespace                          create,delete,get,list,patch,update,watch
+nodes                               no           v1                                false        Node                               create,delete,deletecollection,get,list,patch,update,watch
+persistentvolumeclaims              pvc          v1                                true         PersistentVolumeClaim              create,delete,deletecollection,get,list,patch,update,watch
+persistentvolumes                   pv           v1                                false        PersistentVolume                   create,delete,deletecollection,get,list,patch,update,watch
+pods                                po           v1                                true         Pod                                create,delete,deletecollection,get,list,patch,update,watch   all
+podtemplates                                     v1                                true         PodTemplate                        create,delete,deletecollection,get,list,patch,update,watch
+replicationcontrollers              rc           v1                                true         ReplicationController              create,delete,deletecollection,get,list,patch,update,watch   all
+resourcequotas                      quota        v1                                true         ResourceQuota                      create,delete,deletecollection,get,list,patch,update,watch
+```
+
+Check the resources per each namespace:
+```
+# kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl -v=6 get --show-kind --ignore-not-found -n istio-system
+# kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl -v=6 get --show-kind --ignore-not-found -n prometheus
+# kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl -v=6 get --show-kind --ignore-not-found -n kiali
+```
+
+If necessary remove finalisers on crd:
+```
+# kubectl patch crd kialis.kiali.io -p '{"metadata":{"finalizers": []}}' --type=merge
 ```
