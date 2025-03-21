@@ -29,7 +29,7 @@ metadata:
   namespace: home
   labels:
     # set version, else kiali shows warning
-    app.kubernetes.io/version: 0.6.9
+    version: 0.6.9
 spec:
   replicas: 4
   selector:
