@@ -592,3 +592,15 @@ If necessary remove finalisers on crd:
 ```
 # kubectl patch crd kialis.kiali.io -p '{"metadata":{"finalizers": []}}' --type=merge
 ```
+
+Helm and helmfile remove pvc, but they do not remove PV (see: https://github.com/helm/helm/issues/5156 ):
+```
+# k get pv -o wide
+```
+
+After removing PV, if using static storage provisioning, remember to find the folder and clear its contents:
+```
+$  yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name worker1
+# cd /opt/my-local-storage/worker1-pv1/
+# rm -rf ./*
+```
