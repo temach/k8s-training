@@ -1170,3 +1170,160 @@ Remedy flannel with loading netfilter kernel module:
 ```
 
 Then manually delete and recreate all flannel pods and everything will work.
+
+
+
+# Setup kubectl from local machine to remote yc cloud
+
+Add static ip to yc cloud master machine in yc WEB GUI, because its a pain if ip floats.
+
+Current setup:
+```
+$ yc compute instances list
++---------+---------+-----------------+-------------+
+|  NAME   | STATUS  |   EXTERNAL IP   | INTERNAL IP |
++---------+---------+-----------------+-------------+
+| master  | RUNNING | 158.160.61.136  | 10.128.0.16 |
+| worker1 | RUNNING | 158.160.36.172  | 10.128.0.25 |
+| worker2 | RUNNING | 89.169.144.19   | 10.128.0.26 |
+| worker3 | RUNNING | 158.160.111.216 | 10.128.0.3  |
++---------+---------+-----------------+-------------+
+```
+
+Check that api server is reachable:
+```
+$ nmap 158.160.61.136 -p 6443
+```
+
+Anyhow copy remote /etc/kubernetes/admin.conf into your local ~/.kube/config. Check:
+```
+$ k config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin
+```
+
+### Try simply changing server ip in config
+
+Try to change server address, to connect to remove:
+```
+$ vim ~/.kube/config
+apiVersion: v1
+clusters:
+- cluster:
+    # server: https://10.128.0.16:6443
+    server: https://158.160.61.136:6443
+```
+
+But this fails because admin certs are for 10.x.x.x ip, not for the public static ip:
+```
+$ k get nodes
+E0317 20:39:56.908769  138241 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"https://158.160.61.136:6443/api?timeout=32s\": tls: failed to verify certificate: x509: certificate is valid for 10.255.0.1, 10.128.0.16, not 158.160.61.136"
+Unable to connect to the server: tls: failed to verify certificate: x509: certificate is valid for 10.255.0.1, 10.128.0.16, not 158.160.61.136
+```
+
+### Try tunnelling localhost to remote via ssh
+
+Change the server ip back to original /etc/kubernetes/admin.conf:
+```
+$ vim ~/.kube/config
+apiVersion: v1
+clusters:
+- cluster:
+    server: https://10.128.0.16:6443
+    # server: https://158.160.61.136:6443
+```
+
+Add kubernetes master ip 10.128.0.16 to localhost interface and verify:
+```
+$ sudo ip addr add 10.128.0.16/32 dev lo
+
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet 10.128.0.16/32 scope global lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+
+$ ping 10.128.0.16   
+PING 10.128.0.16 (10.128.0.16) 56(84) bytes of data.
+64 bytes from 10.128.0.16: icmp_seq=1 ttl=64 time=0.053 ms
+64 bytes from 10.128.0.16: icmp_seq=2 ttl=64 time=0.072 ms
+64 bytes from 10.128.0.16: icmp_seq=3 ttl=64 time=0.069 ms
+
+--- 10.128.0.16 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2026ms
+rtt min/avg/max/mdev = 0.053/0.064/0.072/0.008 ms
+```
+
+Add entry for ssh tunnel to remote, MUST SPECIFY THE 10.128.0.16 IP in LocalForward statement:
+```
+$ vim ~/.ssh/config
+Host k8s-training-master-tunnel
+  HostName 158.160.61.136
+  Port 22
+  User artem
+  # tunnel from self port 6443 to remote port 6443
+  LocalForward 10.128.0.16:6443 6443
+  ExitOnForwardFailure yes
+  SessionType none
+  ServerAliveInterval 60
+  IdentityFile ~/.ssh/id_rsa
+```
+
+
+Now run tunnel and try to get nodes and check with curl using the master's ip:
+```
+$ sudo ss -lntp
+State             Recv-Q            Send-Q                       Local Address:Port                       Peer Address:Port           Process
+LISTEN            0                 4096                            127.0.0.54:53                              0.0.0.0:*               users:(("systemd-resolve",pid=293726,fd=21))
+LISTEN            0                 4096                         127.0.0.53%lo:53                              0.0.0.0:*               users:(("systemd-resolve",pid=293726,fd=19))
+
+
+$ ssh -v k8s-training-master-tunnel
+debug1: Connecting to 158.160.61.136 [158.160.61.136] port 22.
+...
+Authenticated to 158.160.61.136 ([158.160.61.136]:22) using "publickey".
+debug1: Local connections to 10.128.0.16:6443 forwarded to remote address 127.0.0.1:6443
+debug1: Local forwarding listening on 10.128.0.16 port 6443.
+...
+debug1: Connection to port 6443 forwarding to 127.0.0.1 port 6443 requested.
+debug1: channel 1: new direct-tcpip [direct-tcpip] (inactive timeout: 0)
+debug1: channel 1: free: direct-tcpip: listening port 6443 for 127.0.0.1 port 6443, connect from 10.128.0.16 port 38922 to 10.128.0.16 port 6443, nchannels 2
+
+
+$ sudo ss -lntp
+State                Recv-Q               Send-Q                              Local Address:Port                               Peer Address:Port               Process
+LISTEN               0                    4096                                   127.0.0.54:53                                      0.0.0.0:*                   users:(("systemd-resolve",pid=293726,fd=21))
+LISTEN               0                    128                                   10.128.0.16:6443                                    0.0.0.0:*                   users:(("ssh",pid=643839,fd=4))
+LISTEN               0                    4096                                127.0.0.53%lo:53                                      0.0.0.0:*                   users:(("systemd-resolve",pid=293726,fd=19))
+
+$ curl -k https://10.128.0.16:6443
+{
+  "kind": "Status",
+  "apiVersion": "v1",
+  "metadata": {},
+  "status": "Failure",
+  "message": "forbidden: User \"system:anonymous\" cannot get path \"/\"",
+  "reason": "Forbidden",
+  "details": {},
+  "code": 403
+}
+```
+
+
+Finally it works:
+```
+$ k get nodes
+NAME      STATUS   ROLES           AGE     VERSION
+master    Ready    control-plane   54d     v1.32.1
+worker1   Ready    <none>          53d     v1.32.1
+worker2   Ready    <none>          4d17h   v1.32.1
+worker3   Ready    <none>          4d17h   v1.32.1
+```
+
+And now its possible to port-forward remote services to local machine.
+
+
