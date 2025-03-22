@@ -1617,6 +1617,8 @@ Accidentally found note that kiali expects to be installed into same namespace a
 Added config option to discover istio namespace and re-created keali pod after which everything worked.
 See: https://kiali.io/docs/installation/deployment-options/#kiali-and-istio-installation-namespaces
 
+Outgoing connections appear in graph are from attached debug container to http-server when testing outgoing curl requests to prometheus and internet.
+
 Service mesh screenshot:
 ![image](https://github.com/user-attachments/assets/03eb90cc-8162-4082-830d-f0b67299b819)
 
