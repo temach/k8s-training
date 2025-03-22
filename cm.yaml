@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-basic
+data:
+  file: |
+    favourite_food="pasta"
+    player_initial_lives="3"
+    file_name="user-interface.properties"
+    welcome_text="Hello from config map!"
