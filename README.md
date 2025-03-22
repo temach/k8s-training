@@ -865,7 +865,206 @@ Forwarding from 127.0.0.1:30000 -> 20001
 Forwarding from [::1]:30000 -> 20001
 ```
 
-### Deploy an app with istio
+### Deploy app.yaml with service mesh
 
-Must add istio label and deploy:
+App to echo different HTTP statuses: https://github.com/aaronpowell/httpstatus
+Which runs HTTP on port 8080 by default.
 
+Namespace must have label:
+```
+kind: Namespace
+metadata:
+  labels:
+    istio-injection: enabled
+```
+
+Adhere to istio special port naming convention with a dash "-" in Service objects.
+see https://kiali.io/docs/features/validations/#kia0601---port-name-must-follow-protocol-suffix-form :
+```
+kind: Service
+spec:
+  ports:
+    - name: http-main
+```
+
+And the app POD (not the deployment, the actual pod) needs to have labels:
+```
+kind: Deployment
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: http-server
+        app.kubernetes.io/version: 0.6.9
+```
+
+Or the short version (but long version is more standard, see - https://helm.sh/docs/chart_best_practices/labels/#standard-labels ):
+```
+kind: Deployment
+spec:
+  template:
+    metadata:
+      labels:
+        app: http-server
+        version: 0.6.9
+```
+
+Deploy:
+```
+# k apply -f app.yaml 
+namespace/home created
+service/http-server created
+deployment.apps/http-server created
+
+# k get pods -A -o wide
+NAMESPACE      NAME                                             READY   STATUS    RESTARTS       AGE     IP             NODE      NOMINATED NODE   READINESS GATES
+home           http-server-857845bbb5-cstdc                     2/2     Running   0              70s     10.244.2.23    worker2   <none>           <none>
+home           http-server-857845bbb5-hqsqt                     2/2     Running   0              70s     10.244.3.5     worker3   <none>           <none>
+home           http-server-857845bbb5-txfq7                     2/2     Running   0              70s     10.244.1.117   worker1   <none>           <none>
+home           http-server-857845bbb5-wgmq8                     2/2     Running   0              70s     10.244.1.118   worker1   <none>           <none>
+istio-system   istiod-558554f5df-hrd7f                          1/1     Running   0              8h      10.244.3.4     worker3   <none>           <none>
+kiali          kiali-654966dc55-tmc8k                           1/1     Running   0              51m     10.244.2.21    worker2   <none>           <none>
+kiali          kiali-operator-6bcdcb6998-wffm9                  1/1     Running   0              8h      10.244.2.13    worker2   <none>           <none>
+kube-flannel   kube-flannel-ds-hjwfh                            1/1     Running   5 (12h ago)    5d2h    10.128.0.16    master    <none>           <none>
+kube-flannel   kube-flannel-ds-q2gl4                            1/1     Running   18 (12h ago)   5d3h    10.128.0.26    worker2   <none>           <none>
+kube-flannel   kube-flannel-ds-sq6s7                            1/1     Running   6 (12h ago)    5d2h    10.128.0.3     worker3   <none>           <none>
+kube-flannel   kube-flannel-ds-sx6qk                            1/1     Running   5 (12h ago)    5d2h    10.128.0.25    worker1   <none>           <none>
+kube-system    coredns-7c65d6cfc9-gmzxw                         1/1     Running   3 (12h ago)    5d2h    10.244.2.12    worker2   <none>           <none>
+kube-system    coredns-7c65d6cfc9-pk4xt                         1/1     Running   15 (12h ago)   24d     10.244.0.28    master    <none>           <none>
+kube-system    etcd-master                                      1/1     Running   21 (12h ago)   53d     10.128.0.16    master    <none>           <none>
+kube-system    kube-apiserver-master                            1/1     Running   21 (12h ago)   53d     10.128.0.16    master    <none>           <none>
+kube-system    kube-controller-manager-master                   1/1     Running   22 (12h ago)   53d     10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-bp57z                                 1/1     Running   8 (12h ago)    7d21h   10.128.0.25    worker1   <none>           <none>
+kube-system    kube-proxy-hkklk                                 1/1     Running   7 (12h ago)    7d21h   10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-x4qcl                                 1/1     Running   4 (12h ago)    5d3h    10.128.0.26    worker2   <none>           <none>
+kube-system    kube-proxy-z5ztj                                 1/1     Running   5 (12h ago)    5d3h    10.128.0.3     worker3   <none>           <none>
+kube-system    kube-scheduler-master                            1/1     Running   17 (12h ago)   24d     10.128.0.16    master    <none>           <none>
+prometheus     prometheus-kube-state-metrics-5bd466f7f6-ngq95   1/1     Running   0              8h      10.244.2.14    worker2   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-97rmf        1/1     Running   0              8h      10.128.0.26    worker2   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-pkqmh        1/1     Running   0              8h      10.128.0.25    worker1   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-qlx2v        1/1     Running   0              8h      10.128.0.16    master    <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-x5jwx        1/1     Running   0              8h      10.128.0.3     worker3   <none>           <none>
+prometheus     prometheus-server-88cb5cb78-ggqcp                2/2     Running   0              8h      10.244.1.116   worker1   <none>           <none>
+
+
+# k describe pod -n home http-server-857845bbb5-cstdc
+...
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  106s  default-scheduler  Successfully assigned home/http-server-857845bbb5-cstdc to worker2
+  Normal  Pulling    105s  kubelet            Pulling image "docker.io/istio/proxyv2:1.25.0"
+  Normal  Pulled     96s   kubelet            Successfully pulled image "docker.io/istio/proxyv2:1.25.0" in 9.098s (9.098s including waiting). Image size: 285485638 bytes.
+  Normal  Created    77s   kubelet            Created container: istio-init
+  Normal  Started    77s   kubelet            Started container istio-init
+  Normal  Pulling    76s   kubelet            Pulling image "ghcr.io/aaronpowell/httpstatus:155dc50c6959df1db12cc0e07da3f2e0035a1426"
+  Normal  Pulled     68s   kubelet            Successfully pulled image "ghcr.io/aaronpowell/httpstatus:155dc50c6959df1db12cc0e07da3f2e0035a1426" in 8.111s (8.111s including waiting). Image size: 226998178 bytes.
+  Normal  Created    53s   kubelet            Created container: server-container
+  Normal  Started    53s   kubelet            Started container server-container
+  Normal  Pulled     53s   kubelet            Container image "docker.io/istio/proxyv2:1.25.0" already present on machine
+  Normal  Created    53s   kubelet            Created container: istio-proxy
+  Normal  Started    52s   kubelet            Started container istio-proxy
+```
+
+Make some requests to the service, they are successful!:
+```
+$ k port-forward -n home svc/http-server 8888:http-main
+Forwarding from 127.0.0.1:8888 -> 8080
+Forwarding from [::1]:8888 -> 8080
+
+$ curl -v http://localhost:8888/200  
+* Host localhost:8888 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:8888...
+* Connected to localhost (::1) port 8888
+* using HTTP/1.x
+> GET /200 HTTP/1.1
+> Host: localhost:8888
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Content-Length: 6
+< Content-Type: text/plain
+< Date: Sat, 22 Mar 2025 03:54:46 GMT
+< Server: Kestrel
+< 
+* Connection #0 to host localhost left intact
+200 OK
+
+$ curl -v http://localhost:8888/404
+* Host localhost:8888 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:8888...
+* Connected to localhost (::1) port 8888
+* using HTTP/1.x
+> GET /404 HTTP/1.1
+> Host: localhost:8888
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 404 Not Found
+< Content-Length: 13
+< Content-Type: text/plain
+< Date: Sat, 22 Mar 2025 03:54:51 GMT
+< Server: Kestrel
+< 
+* Connection #0 to host localhost left intact
+404 Not Found
+```
+
+However no traffic shows up in kiali!
+
+Use debug on http-server pod to check istio rules:
+```
+$ k debug -it --profile=sysadmin --image=nicolaka/netshoot -n home --target=server-container http-server-b84f86b96-4lzpf
+
+http-server-b84f86b96-4lzpf  ~  apk add iptables-legacy
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/main/x86_64/APKINDEX.tar.gz
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.19/community/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/edge/main/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/edge/testing/x86_64/APKINDEX.tar.gz
+fetch http://dl-cdn.alpinelinux.org/alpine/edge/community/x86_64/APKINDEX.tar.gz
+(1/3) Installing libip4tc (1.8.11-r1)
+(2/3) Installing libip6tc (1.8.11-r1)
+(3/3) Installing iptables-legacy (1.8.11-r1)
+Executing busybox-1.36.1-r26.trigger
+OK: 412 MiB in 275 packages
+
+http-server-b84f86b96-4lzpf  ~  iptables-legacy-save   
+# Generated by iptables-save v1.8.11 on Sat Mar 22 03:51:40 2025
+*nat
+:PREROUTING ACCEPT [1400:84000]
+:INPUT ACCEPT [1400:84000]
+:OUTPUT ACCEPT [154:13238]
+:POSTROUTING ACCEPT [162:13718]
+:ISTIO_INBOUND - [0:0]
+:ISTIO_IN_REDIRECT - [0:0]
+:ISTIO_OUTPUT - [0:0]
+:ISTIO_REDIRECT - [0:0]
+-A PREROUTING -p tcp -j ISTIO_INBOUND
+-A OUTPUT -j ISTIO_OUTPUT
+-A ISTIO_INBOUND -p tcp -m tcp --dport 15008 -j RETURN
+-A ISTIO_INBOUND -p tcp -m tcp --dport 15090 -j RETURN
+-A ISTIO_INBOUND -p tcp -m tcp --dport 15021 -j RETURN
+-A ISTIO_INBOUND -p tcp -m tcp --dport 15020 -j RETURN
+-A ISTIO_INBOUND -p tcp -j ISTIO_IN_REDIRECT
+-A ISTIO_IN_REDIRECT -p tcp -j REDIRECT --to-ports 15006
+-A ISTIO_OUTPUT -s 127.0.0.6/32 -o lo -j RETURN
+-A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -p tcp -m tcp ! --dport 15008 -m owner --uid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo -m owner ! --uid-owner 1337 -j RETURN
+-A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN
+-A ISTIO_OUTPUT ! -d 127.0.0.1/32 -o lo -p tcp -m tcp ! --dport 15008 -m owner --gid-owner 1337 -j ISTIO_IN_REDIRECT
+-A ISTIO_OUTPUT -o lo -m owner ! --gid-owner 1337 -j RETURN
+-A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN
+-A ISTIO_OUTPUT -d 127.0.0.1/32 -j RETURN
+-A ISTIO_OUTPUT -j ISTIO_REDIRECT
+-A ISTIO_REDIRECT -p tcp -j REDIRECT --to-ports 15001
+COMMIT
+# Completed on Sat Mar 22 03:51:40 2025
+
+```

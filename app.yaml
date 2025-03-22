@@ -15,11 +15,11 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: http-server
+    app.kubernetes.io/name: http-server
   ports:
     - protocol: TCP
-      name: mainhttp
-      port: 80
+      name: http-main
+      port: 8080
 
 ---
 apiVersion: apps/v1
@@ -27,21 +27,20 @@ kind: Deployment
 metadata:
   name: http-server
   namespace: home
-  labels:
-    # set version, else kiali shows warning
-    version: 0.6.9
 spec:
   replicas: 4
   selector:
     matchLabels:
-      app: http-server
+      app.kubernetes.io/name: http-server
   template:
     metadata:
       labels:
-        app: http-server
+        app.kubernetes.io/name: http-server
+        # set version on POD (not on Deployment), else kiali shows warning
+        app.kubernetes.io/version: 0.6.9
     spec:
       containers:
         - name: server-container
           image: ghcr.io/aaronpowell/httpstatus:155dc50c6959df1db12cc0e07da3f2e0035a1426
           ports:
-            - containerPort: 80
+            - containerPort: 8080
