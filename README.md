@@ -1618,5 +1618,8 @@ Added config option to discover istio namespace and re-created keali pod after w
 See: https://kiali.io/docs/installation/deployment-options/#kiali-and-istio-installation-namespaces
 
 Service mesh screenshot:
+![image](https://github.com/user-attachments/assets/03eb90cc-8162-4082-830d-f0b67299b819)
 
+After spamming the server with code 201 for a while the error rate slightly decreased:
+![image](https://github.com/user-attachments/assets/ebf97f4f-54c7-4c4c-9e3c-1f243adb1c51)
 
