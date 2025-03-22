@@ -1576,8 +1576,47 @@ Note:
 - for some reason sending traffic via port-forward to svc/http-service did NOT change istio metrics, only traffic sent to NodePort appeared in istio metrics
 - most traffic is 404 from internet bots (?)
 
-Istio metrics are collected, but prometheus does not have istio-proxy (from each container) as its target, so statistics were not collected into prometheus.
+Istio metrics are collected, and prometheus has istio-proxy as targets since istio by default has "prometheus.io" annotations and gets scraped.
+see: https://istio.io/latest/docs/ops/integrations/prometheus/#option-1-metrics-merging
 
+Checking the pods, this is indeed true (port 15020 and port 15090 both return metrics, not a problem):
+```
+$ k get pod -n home http-server-b84f86b96-4lzpf -o yaml | rg prometheus.io -C5
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    istio.io/rev: default
+    kubectl.kubernetes.io/default-container: server-container
+    kubectl.kubernetes.io/default-logs-container: server-container
+    prometheus.io/path: /stats/prometheus
+    prometheus.io/port: "15020"
+    prometheus.io/scrape: "true"
+  labels:
+    app.kubernetes.io/name: http-server
+```
 
+Check that prometheus has these metrcis in prom UI:
+```
+$ k port-forward -n prometheus svc/prometheus-server 9090:80
+Forwarding from 127.0.0.1:9090 -> 9090
+Forwarding from [::1]:9090 -> 9090
+
+# Run query: sum(istio_requests_total{job="kubernetes-pods", namespace="home", pod="http-server-b84f86b96-4lzpf"}) by (response_code)
+{response_code="200"}	29
+{response_code="404"}	4449
+{response_code="302"}	8
+{response_code="500"}	1
+{response_code="301"}	1
+{response_code="504"}   39
+```
+
+### Fix kiali istio discovery
+
+Accidentally found note that kiali expects to be installed into same namespace as istio, else it can break.
+Added config option to discover istio namespace and re-created keali pod after which everything worked.
+See: https://kiali.io/docs/installation/deployment-options/#kiali-and-istio-installation-namespaces
+
+Service mesh screenshot:
 
 
