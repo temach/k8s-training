@@ -42,6 +42,7 @@ releases:
           create: true
           name: kiali-server
           spec:
+            istio_namespace: "istio-system"
             deployment:
               service_type: "ClusterIP"
             auth:

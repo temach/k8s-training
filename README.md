@@ -1017,7 +1017,7 @@ $ curl -v http://localhost:8888/404
 404 Not Found
 ```
 
-However no traffic shows up in kiali!
+### Debug no traffic visible in kiali
 
 Use debug on http-server pod to check istio rules:
 ```
@@ -1067,4 +1067,517 @@ http-server-b84f86b96-4lzpf  ~  iptables-legacy-save
 COMMIT
 # Completed on Sat Mar 22 03:51:40 2025
 
+
+
+$ k debug -it --profile=sysadmin --image=nicolaka/netshoot -n home --target=istio-proxy http-server-b84f86b96-4lzpf
+
+http-server-b84f86b96-4lzpf  ~  ps auxf
+PID   USER     TIME  COMMAND
+    1 1337      0:03 /usr/local/bin/pilot-agent proxy sidecar --domain home.svc.cluster.local --proxyLogLevel=warning --proxyComponentLogLevel=misc:error --log_output_level=default:info
+   14 1337      0:40 /usr/local/bin/envoy -c etc/istio/proxy/envoy-rev.json --drain-time-s 45 --drain-strategy immediate --local-address-ip-version v4 --file-flush-interval-msec 1000 --disable-hot-restart --allow-unknown-static-fields -l warning --component-log-level misc:error --skip-deprecated-logs --concurrency 2
+   28 root      0:01 zsh
+  163 root      0:00 ps auxf
+  164 root      0:00 less
+
+http-server-b84f86b96-4lzpf  ~  cat /proc/14/root/etc/istio/proxy/envoy-rev.json
+{
+  "application_log_config": {
+    "log_format": {
+        "text_format": "%Y-%m-%dT%T.%fZ\t%l\tenvoy %n %g:%#\t%v\tthread=%t"
+    }
+  },
+  "node": {
+    "id": "sidecar~10.244.1.122~http-server-b84f86b96-4lzpf.home~home.svc.cluster.local",
+    "cluster": "http-server.home",
+    "locality": {
+      "region": "ru-central1"
+      ,
+      "zone": "ru-central1-a"
+    },
+    "metadata": {...},
+  "layered_runtime": {
+      "layers": [
+          {
+            "name": "global config",
+            "static_layer": {"envoy.deprecated_features:envoy.config.listener.v3.Listener.hidden_envoy_deprecated_use_original_dst":true,"envoy.re
+loadable_features.http_reject_path_with_fragment":false,"overload.global_downstream_max_connections":"2147483647","re2.max_program_size.error_leve
+l":"32768"}
+          },
+          {
+              "name": "admin",
+              "admin_layer": {}
+          }
+      ]
+  },
+  "bootstrap_extensions": [
+    {
+      "name": "envoy.bootstrap.internal_listener",
+      "typed_config": {
+        "@type":"type.googleapis.com/udpa.type.v1.TypedStruct",
+        "type_url": "type.googleapis.com/envoy.extensions.bootstrap.internal_listener.v3.InternalListener",
+        "value": {
+          "buffer_size_kb": 64
+        }
+      }
+    }
+  ],
+  "stats_config": {
+    "use_all_default_tags": false,
+    "stats_tags": [
+      {
+        "tag_name": "cluster_name",
+        "regex": "^cluster(\\.(.+);)"
+      },
+      {
+        "tag_name": "http_conn_manager_prefix",
+        "regex": "^http\\.(((?:[_.[:digit:]\\w]*|[_\\[\\]aAbBcCdDeEfF[:digit:]\\w\\:]*));\\.)"
+      },
+      {
+        "tag_name": "thread_name",
+        "regex": "^server(\\.(.+))\\.watchdog"
+      },
+      {
+        "tag_name": "tcp_prefix",
+        "regex": "^tcp\\.((.*?)\\.)\\w+?$"
+      },
+      {
+        "regex": "_rq(_(\\d{3}))$",
+        "tag_name": "response_code"
+      },
+      {
+        "tag_name": "response_code_class",
+        "regex": "_rq(_(\\dxx))$"
+      },
+      {
+        "tag_name": "http_conn_manager_listener_prefix",
+        "regex": "^listener(?=\\.).*?\\.http\\.(((?:[_.[:digit:]]*|[_\\[\\]aAbBcCdDeEfF[:digit:]]*))\\.)"
+      },
+      {
+        "tag_name": "listener_address",
+        "regex": "^listener\\.(((?:[_.[:digit:]]*|[_\\[\\]aAbBcCdDeEfF[:digit:]]*))\\.)"
+      },
+      {
+        "tag_name": "mongo_prefix",
+        "regex": "^mongo\\.(.+?)\\.(collection|cmd|cx_|op_|delays_|decoding_)(.*?)$"
+      },
+      {
+        "regex": "(cache\\.(.+?)\\.)",
+        "tag_name": "cache"
+      },
+      {
+        "regex": "(component\\.(.+?)\\.)",
+        "tag_name": "component"
+      },
+      {
+        "regex": "(tag\\.(.+?);\\.)",
+        "tag_name": "tag"
+      },
+      {
+        "regex": "(wasm_filter\\.(.+?)\\.)",
+        "tag_name": "wasm_filter"
+      },
+      {
+        "tag_name": "authz_enforce_result",
+        "regex": "rbac(\\.(allowed|denied))"
+      },
+      {
+        "tag_name": "authz_dry_run_action",
+        "regex": "(\\.istio_dry_run_(allow|deny)_)"
+      },
+      {
+        "tag_name": "authz_dry_run_result",
+        "regex": "(\\.shadow_(allowed|denied))"
+      }
+    ],
+    "stats_matcher": {
+      "inclusion_list": {
+        "patterns": [
+          {
+          "prefix": "reporter="
+          },
+          {
+          "prefix": "cluster_manager"
+          },
+          {
+          "prefix": "listener_manager"
+          },
+          {
+          "prefix": "server"
+          },
+          {
+          "prefix": "cluster.xds-grpc"
+          },
+          {
+          "prefix": "wasm"
+          },
+          {
+          "suffix": "rbac.allowed"
+          },
+          {
+          "suffix": "rbac.denied"
+          },
+          {
+          "suffix": "shadow_allowed"
+          },
+          {
+          "suffix": "shadow_denied"
+          },
+          {
+          "safe_regex": {"regex":"vhost\\..*\\.route\\..*"}
+          },
+          {
+          "prefix": "component"
+          },
+          {
+          "prefix": "istio"
+          }
+        ]
+      }
+    }
+  },
+  "admin": {
+    "access_log": [
+      {
+        "name": "envoy.access_loggers.file",
+        "typed_config": {
+          "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+          "path": "/dev/null"
+        }
+      }
+    ],
+    "profile_path": "/var/lib/istio/data/envoy.prof",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 15000
+      }
+    }
+  },
+  "dynamic_resources": {
+    "lds_config": {
+      "ads": {},
+      "initial_fetch_timeout": "0s",
+      "resource_api_version": "V3"
+    },
+    "cds_config": {
+      "ads": {},
+      "initial_fetch_timeout": "0s",
+      "resource_api_version": "V3"
+    },
+    "ads_config": {
+      "api_type": "DELTA_GRPC",
+      "set_node_on_first_message_only": true,
+      "transport_api_version": "V3",
+      "grpc_services": [
+        {
+          "envoy_grpc": {
+            "cluster_name": "xds-grpc"
+          }
+        }
+      ]
+    }
+  },
+  "static_resources": {
+    "clusters": [
+      {
+        "name": "prometheus_stats",
+        "alt_stat_name": "prometheus_stats;",
+        "type": "STATIC",
+        "connect_timeout": "0.250s",
+        "lb_policy": "ROUND_ROBIN",
+        "load_assignment": {
+          "cluster_name": "prometheus_stats",
+          "endpoints": [{
+            "lb_endpoints": [{
+              "endpoint": {
+                "address":{
+                  "socket_address": {
+                    "protocol": "TCP",
+                    "address": "127.0.0.1",
+                    "port_value": 15000
+                  }
+                }
+              }
+            }]
+          }]
+        }
+      },
+      {
+        "name": "agent",
+        "alt_stat_name": "agent;",
+        "type": "STATIC",
+        "connect_timeout": "0.250s",
+        "lb_policy": "ROUND_ROBIN",
+        "load_assignment": {
+          "cluster_name": "agent",
+          "endpoints": [{
+            "lb_endpoints": [{
+              "endpoint": {
+                "address":{
+                  "socket_address": {
+                    "protocol": "TCP",
+                    "address": "127.0.0.1",
+                    "port_value": 15020
+                  }
+                }
+              }
+            }]
+          }]
+        }
+      },
+      {
+        "name": "sds-grpc",
+        "alt_stat_name": "sds-grpc;",
+        "type": "STATIC",
+        "typed_extension_protocol_options": {
+          "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+           "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+           "explicit_http_config": {
+            "http2_protocol_options": {}
+           }
+          }
+        },
+        "connect_timeout": "1s",
+        "lb_policy": "ROUND_ROBIN",
+        "load_assignment": {
+          "cluster_name": "sds-grpc",
+          "endpoints": [{
+            "lb_endpoints": [{
+              "endpoint": {
+                "address":{
+                  "pipe": {
+                    "path": "./var/run/secrets/workload-spiffe-uds/socket"
+                  }
+                }
+              }
+            }]
+          }]
+        }
+      },
+      {
+        "name": "xds-grpc",
+        "alt_stat_name": "xds-grpc;",
+        "type" : "STATIC",
+        "connect_timeout": "1s",
+        "lb_policy": "ROUND_ROBIN",
+        "load_assignment": {
+          "cluster_name": "xds-grpc",
+          "endpoints": [{
+            "lb_endpoints": [{
+              "endpoint": {
+                "address":{
+                  "pipe": {
+                    "path": "./etc/istio/proxy/XDS"
+                  }
+                }
+              }
+            }]
+          }]
+        },
+        "circuit_breakers": {
+          "thresholds": [
+            {
+              "priority": "DEFAULT",
+              "max_connections": 100000,
+              "max_pending_requests": 100000,
+              "max_requests": 100000
+            },
+            {
+              "priority": "HIGH",
+              "max_connections": 100000,
+              "max_pending_requests": 100000,
+              "max_requests": 100000
+            }
+          ]
+        },
+        "upstream_connection_options": {
+          "tcp_keepalive": {
+            "keepalive_time": 300
+          }
+        },
+        "max_requests_per_connection": 1,
+        "typed_extension_protocol_options": {
+          "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+           "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+           "explicit_http_config": {
+            "http2_protocol_options": {}
+           }
+          }
+        }
+      }
+      
+      
+    ],
+    "listeners":[
+      {
+        "name": "0.0.0.0_15090",
+        
+        "address": {
+          "socket_address": {
+            "protocol": "TCP",
+            "address": "0.0.0.0",
+            
+            "port_value": 15090
+          }
+        },
+        "ignore_global_conn_limit": true,
+        "bypass_overload_manager": true,
+        
+        "filter_chains": [
+          {
+            "filters": [
+              {
+                "name": "envoy.filters.network.http_connection_manager",
+                "typed_config": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                  "codec_type": "AUTO",
+                  "stat_prefix": "stats",
+                  "route_config": {
+                    "virtual_hosts": [
+                      {
+                        "name": "backend",
+                        "domains": [
+                          "*"
+                        ],
+                        "routes": [
+                          {
+                            "match": {
+                              "prefix": "/stats/prometheus"
+                            },
+                            "route": {
+                              "cluster": "prometheus_stats"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "http_filters": [
+                  {
+                    "name": "envoy.filters.http.router",
+                    "typed_config": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "0.0.0.0_15021",
+        "address": {
+           "socket_address": {
+             "protocol": "TCP",
+             "address": "0.0.0.0",
+             "port_value": 15021
+           }
+        },
+        "ignore_global_conn_limit": true,
+        "bypass_overload_manager": true,
+        
+        "filter_chains": [
+          {
+            "filters": [
+              {
+                "name": "envoy.filters.network.http_connection_manager",
+                "typed_config": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                  "codec_type": "AUTO",
+                  "stat_prefix": "agent",
+                  "route_config": {
+                    "virtual_hosts": [
+                      {
+                        "name": "backend",
+                        "domains": [
+                          "*"
+                        ],
+                        "routes": [
+                          {
+                            "match": {
+                              "prefix": "/healthz/ready"
+                            },
+                            "route": {
+                              "cluster": "agent"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "http_filters": [{
+                    "name": "envoy.filters.http.router",
+                    "typed_config": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+  ,
+  "cluster_manager": {
+    "enable_deferred_cluster_creation": true,
+  }
+  
+  ,
+  "deferred_stat_options": {
+    "enable_deferred_creation_stats": true
+  }
+  
+}
+
 ```
+
+
+Generate some traffic `while true ; do curl http://158.160.61.136:30008/504 ; done` and check prometheus stats with debug container:
+```
+http-server-b84f86b96-4lzpf  ~  curl http://localhost:15090/stats/prometheus | grep -A30 istio_requests_total
+
+# TYPE istio_requests_total counter
+istio_requests_total{reporter="destination",source_workload="unknown",source_canonical_service="unknown",source_canonical_revision="latest",source_workload_namespace="unknown",source_principal="unknown",source_app="unknown",source_version="unknown",source_cluster="unknown",destination_workload="http-server",destination_workload_namespace="home",destination_principal="unknown",destination_app="",destination_version="",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="404",grpc_response_status="",response_flags="-",connection_security_policy="none"} 815
+
+istio_requests_total{reporter="source",source_workload="http-server",source_canonical_service="http-server",source_canonical_revision="0.6.9",source_workload_namespace="home",source_principal="spiffe://cluster.local/ns/home/sa/default",source_app="",source_version="",source_cluster="Kubernetes",destination_workload="http-server",destination_workload_namespace="home",destination_principal="spiffe://cluster.local/ns/home/sa/default",destination_app="unknown",destination_version="unknown",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="200",grpc_response_status="",response_flags="-",connection_security_policy="unknown"} 1
+
+istio_requests_total{reporter="source",source_workload="http-server",source_canonical_service="http-server",source_canonical_revision="0.6.9",source_workload_namespace="home",source_principal="unknown",source_app="",source_version="",source_cluster="Kubernetes",destination_workload="prometheus-server",destination_workload_namespace="prometheus",destination_principal="unknown",destination_app="unknown",destination_version="unknown",destination_service="prometheus-server.prometheus.svc.cluster.local",destination_canonical_service="prometheus",destination_canonical_revision="v3.2.1",destination_service_name="prometheus-server",destination_service_namespace="prometheus",destination_cluster="Kubernetes",request_protocol="http",response_code="200",grpc_response_status="",response_flags="-",connection_security_policy="unknown"} 4
+
+istio_requests_total{reporter="source",source_workload="http-server",source_canonical_service="http-server",source_canonical_revision="0.6.9",source_workload_namespace="home",source_principal="unknown",source_app="",source_version="",source_cluster="Kubernetes",destination_workload="unknown",destination_workload_namespace="unknown",destination_principal="unknown",destination_app="unknown",destination_version="unknown",destination_service="dl-cdn.alpinelinux.org",destination_canonical_service="unknown",destination_canonical_revision="latest",destination_service_name="PassthroughCluster",destination_service_namespace="unknown",destination_cluster="unknown",request_protocol="http",response_code="200",grpc_response_status="",response_flags="-",connection_security_policy="unknown"} 12
+
+
+
+http-server-b84f86b96-4lzpf  ~   curl http://localhost:15090/stats/prometheus | grep -A20 istio_requests_total           
+# TYPE istio_requests_total counter
+istio_requests_total{reporter="destination",source_workload="unknown",source_canonical_service="unknown",source_canonical_revision="latest",source_workload_namespace="unknown",source_principal="unknown",source_app="unknown",source_version="unknown",source_cluster="unknown",destination_workload="http-server",destination_workload_namespace="home",destination_principal="unknown",destination_app="",destination_version="",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="200",grpc_response_status="",response_flags="-",connection_security_policy="none"} 12
+
+istio_requests_total{reporter="destination",source_workload="unknown",source_canonical_service="unknown",source_canonical_revision="latest",source_workload_namespace="unknown",source_principal="unknown",source_app="unknown",source_version="unknown",source_cluster="unknown",destination_workload="http-server",destination_workload_namespace="home",destination_principal="unknown",destination_app="",destination_version="",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="301",grpc_response_status="",response_flags="-",connection_security_policy="none"} 1
+
+istio_requests_total{reporter="destination",source_workload="unknown",source_canonical_service="unknown",source_canonical_revision="latest",source_workload_namespace="unknown",source_principal="unknown",source_app="unknown",source_version="unknown",source_cluster="unknown",destination_workload="http-server",destination_workload_namespace="home",destination_principal="unknown",destination_app="",destination_version="",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="404",grpc_response_status="",response_flags="-",connection_security_policy="none"} 2168
+
+istio_requests_total{reporter="destination",source_workload="unknown",source_canonical_service="unknown",source_canonical_revision="latest",source_workload_namespace="unknown",source_principal="unknown",source_app="unknown",source_version="unknown",source_cluster="unknown",destination_workload="http-server",destination_workload_namespace="home",destination_principal="unknown",destination_app="",destination_version="",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="500",grpc_response_status="",response_flags="-",connection_security_policy="none"} 1
+
+istio_requests_total{reporter="destination",source_workload="unknown",source_canonical_service="unknown",source_canonical_revision="latest",source_workload_namespace="unknown",source_principal="unknown",source_app="unknown",source_version="unknown",source_cluster="unknown",destination_workload="http-server",destination_workload_namespace="home",destination_principal="unknown",destination_app="",destination_version="",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="504",grpc_response_status="",response_flags="-",connection_security_policy="none"} 39
+
+istio_requests_total{reporter="source",source_workload="http-server",source_canonical_service="http-server",source_canonical_revision="0.6.9",source_workload_namespace="home",source_principal="spiffe://cluster.local/ns/home/sa/default",source_app="",source_version="",source_cluster="Kubernetes",destination_workload="http-server",destination_workload_namespace="home",destination_principal="spiffe://cluster.local/ns/home/sa/default",destination_app="unknown",destination_version="unknown",destination_service="http-server.home.svc.cluster.local",destination_canonical_service="http-server",destination_canonical_revision="0.6.9",destination_service_name="http-server",destination_service_namespace="home",destination_cluster="Kubernetes",request_protocol="http",response_code="200",grpc_response_status="",response_flags="-",connection_security_policy="unknown"} 1
+
+istio_requests_total{reporter="source",source_workload="http-server",source_canonical_service="http-server",source_canonical_revision="0.6.9",source_workload_namespace="home",source_principal="unknown",source_app="",source_version="",source_cluster="Kubernetes",destination_workload="prometheus-server",destination_workload_namespace="prometheus",destination_principal="unknown",destination_app="unknown",destination_version="unknown",destination_service="prometheus-server.prometheus.svc.cluster.local",destination_canonical_service="prometheus",destination_canonical_revision="v3.2.1",destination_service_name="prometheus-server",destination_service_namespace="prometheus",destination_cluster="Kubernetes",request_protocol="http",response_code="200",grpc_response_status="",response_flags="-",connection_security_policy="unknown"} 4
+
+istio_requests_total{reporter="source",source_workload="http-server",source_canonical_service="http-server",source_canonical_revision="0.6.9",source_workload_namespace="home",source_principal="unknown",source_app="",source_version="",source_cluster="Kubernetes",destination_workload="prometheus-server",destination_workload_namespace="prometheus",destination_principal="unknown",destination_app="unknown",destination_version="unknown",destination_service="prometheus-server.prometheus.svc.cluster.local",destination_canonical_service="prometheus",destination_canonical_revision="v3.2.1",destination_service_name="prometheus-server",destination_service_namespace="prometheus",destination_cluster="Kubernetes",request_protocol="http",response_code="302",grpc_response_status="",response_flags="-",connection_security_policy="unknown"} 8
+
+istio_requests_total{reporter="source",source_workload="http-server",source_canonical_service="http-server",source_canonical_revision="0.6.9",source_workload_namespace="home",source_principal="unknown",source_app="",source_version="",source_cluster="Kubernetes",destination_workload="unknown",destination_workload_namespace="unknown",destination_principal="unknown",destination_app="unknown",destination_version="unknown",destination_service="dl-cdn.alpinelinux.org",destination_canonical_service="unknown",destination_canonical_revision="latest",destination_service_name="PassthroughCluster",destination_service_namespace="unknown",destination_cluster="unknown",request_protocol="http",response_code="200",grpc_response_status="",response_flags="-",connection_security_policy="unknown"} 12
+```
+
+Note:
+- 4 instances running and this are metrics from one instance only
+- for some reason sending traffic via port-forward to svc/http-service did NOT change istio metrics, only traffic sent to NodePort appeared in istio metrics
+- most traffic is 404 from internet bots (?)
+
+Istio metrics are collected, but prometheus does not have istio-proxy (from each container) as its target, so statistics were not collected into prometheus.
+
+
+
+
