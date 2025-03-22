@@ -13,13 +13,14 @@ metadata:
   name: http-server
   namespace: home
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app.kubernetes.io/name: http-server
   ports:
     - protocol: TCP
       name: http-main
       port: 8080
+      nodePort: 30008
 
 ---
 apiVersion: apps/v1
