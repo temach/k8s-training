@@ -275,6 +275,65 @@ The index.html on storage medium was changed. Both pods started returning the la
 The PVC had `accessMode: - ReadWriteOnce` which did not stop second pod from updating index.html on the physical-volume.
 see: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
 
+Also note: these physical volumes have support for the volume capacity limit, nothing will stop folder from growing.
+
+
+### test if storage limit is enforced for PV
+
+local provisioner does not enforce PV limit.
+see: https://kubernetes.io/docs/concepts/storage/volumes/#local
+
+Attach to python pod and try to generate multiple 1GB files (PV is 1GB)
+```
+$ k exec -it http-server-5bf7c86586-9p5qd -- /bin/bash            
+Defaulted container "server-container" out of: server-container, generate-index (init)
+
+root@http-server-5bf7c86586-9p5qd:/# cd /homework/
+
+root@http-server-5bf7c86586-9p5qd:/homework# ls -la
+total 16
+drwxrwsr-x 3 root nogroup 4096 Mar 22 19:38 .
+drwxr-xr-x 1 root root    4096 Mar 22 20:01 ..
+drwxrwxrwx 3 root root    4096 Mar 22 20:01 conf
+-rw-r--r-- 1 root nogroup   56 Mar 22 20:08 index.html
+
+root@http-server-5bf7c86586-9p5qd:/homework# dd if=/dev/zero of=dummy-1GB.data count=100 bs=10M
+100+0 records in
+100+0 records out
+1048576000 bytes (1.0 GB, 1000 MiB) copied, 1.03147 s, 1.0 GB/s
+
+root@http-server-5bf7c86586-9p5qd:/homework# dd if=/dev/zero of=dummy-two-1GB.data count=100 bs=10M
+100+0 records in
+100+0 records out
+1048576000 bytes (1.0 GB, 1000 MiB) copied, 108.974 s, 9.6 MB/s
+
+root@http-server-5bf7c86586-9p5qd:/homework# dd if=/dev/zero of=dummy-three-1GB.data count=100 bs=10M
+100+0 records in
+100+0 records out
+1048576000 bytes (1.0 GB, 1000 MiB) copied, 49.9898 s, 21.0 MB/s
+
+root@http-server-5bf7c86586-9p5qd:/homework# ls -la
+total 3072028
+drwxrwsr-x 3 root nogroup       4096 Mar 22 20:45 .
+drwxr-xr-x 1 root root          4096 Mar 22 20:01 ..
+drwxrwxrwx 3 root root          4096 Mar 22 20:01 conf
+-rw-r--r-- 1 root nogroup 1048576000 Mar 22 20:44 dummy-1GB.data
+-rw-r--r-- 1 root nogroup 1048576000 Mar 22 20:45 dummy-three-1GB.data
+-rw-r--r-- 1 root nogroup 1048576000 Mar 22 20:46 dummy-two-1GB.data
+-rw-r--r-- 1 root nogroup         56 Mar 22 20:08 index.html
+
+root@http-server-5bf7c86586-9p5qd:/homework# df -h
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          30G   12G   18G  40% /
+tmpfs            64M     0   64M   0% /dev
+/dev/vda2        30G   12G   18G  40% /homework
+shm              64M     0   64M   0% /dev/shm
+tmpfs           7.7G   12K  7.7G   1% /run/secrets/kubernetes.io/serviceaccount
+tmpfs           3.9G     0  3.9G   0% /proc/acpi
+tmpfs           3.9G     0  3.9G   0% /sys/firmware
+```
+
+
 
 ### distributed dynamic storage (e.g. GlusterFS) over the node's local storage
 
