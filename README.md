@@ -349,7 +349,9 @@ root@worker1:/opt/my-local-storage# find ./worker1-pv1
 These physical volumes do not support volume capacity limit, nothing will stop folder from growing.
 
 
-### distributed dynamic storage (maybe GlusterFS) over the node's local storage
+### configure distributed dynamic storage over the node's local storage
+
+Choose one: https://storageclass.info/csidrivers/
 
 see:
 - https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner/blob/master/docs/getting-started.md
