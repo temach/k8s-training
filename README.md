@@ -275,6 +275,8 @@ The index.html on storage medium was changed. Both pods started returning the la
 The PVC had `accessMode: - ReadWriteOnce` which did not stop second pod from updating index.html on the physical-volume.
 see: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
 
+The claimRef in PV after binding simply states the uid of PVC, it does not mention the pod, so yes multiple pods can use same PV.
+
 
 ### test if storage limit is enforced for PV
 
