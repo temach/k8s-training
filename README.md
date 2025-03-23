@@ -355,7 +355,10 @@ These physical volumes do not support volume capacity limit, nothing will stop f
 
 Choose one: https://storageclass.info/csidrivers/
 
+Looks like longhorn is good.
+
 see:
+- https://longhorn.io/
 - https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner/blob/master/docs/getting-started.md
 - https://github.com/rancher/local-path-provisioner
 - https://github.com/openebs/dynamic-localpv-provisioner and https://openebs.io/
