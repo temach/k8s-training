@@ -50,83 +50,371 @@ aggregator_unavailable_apiservice{name="v1beta1.metrics.k8s.io"} 0
 aggregator_unavailable_apiservice{name="v1beta1.networking.istio.io"} 0
 aggregator_unavailable_apiservice{name="v1beta1.security.istio.io"} 0
 aggregator_unavailable_apiservice{name="v2.autoscaling"} 0
-# HELP apiextensions_apiserver_validation_ratcheting_seconds [ALPHA] Time for comparison of old to new for the purposes of CRDValidationRatcheting during an UPDATE in seconds.
-# TYPE apiextensions_apiserver_validation_ratcheting_seconds histogram
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="1e-05"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="4e-05"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.00016"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.00064"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.00256"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.01024"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.04096"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.16384"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.65536"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="2.62144"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="+Inf"} 1
-apiextensions_apiserver_validation_ratcheting_seconds_sum 0
-apiextensions_apiserver_validation_ratcheting_seconds_count 1
-# HELP apiextensions_openapi_v2_regeneration_count [ALPHA] Counter of OpenAPI v2 spec regeneration count broken down by causing CRD name and reason.
-# TYPE apiextensions_openapi_v2_regeneration_count counter
-apiextensions_openapi_v2_regeneration_count{crd="authorizationpolicies.security.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="destinationrules.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="envoyfilters.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="gateways.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="kialis.kiali.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="peerauthentications.security.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="proxyconfigs.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="requestauthentications.security.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="serviceentries.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="sidecars.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="telemetries.telemetry.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="virtualservices.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="wasmplugins.extensions.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="workloadentries.networking.istio.io",reason="update"} 0
-apiextensions_openapi_v2_regeneration_count{crd="workloadgroups.networking.istio.io",reason="remove"} 0
-apiextensions_openapi_v2_regeneration_count{crd="workloadgroups.networking.istio.io",reason="update"} 0
-# HELP apiextensions_openapi_v3_regeneration_count [ALPHA] Counter of OpenAPI v3 spec regeneration count broken down by group, version, causing CRD and reason.
-# TYPE apiextensions_openapi_v3_regeneration_count counter
-apiextensions_openapi_v3_regeneration_count{crd="authorizationpolicies.security.istio.io",group="security.istio.io",reason="add",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="authorizationpolicies.security.istio.io",group="security.istio.io",reason="add",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="destinationrules.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="destinationrules.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="destinationrules.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="envoyfilters.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="gateways.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="gateways.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="gateways.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="kialis.kiali.io",group="kiali.io",reason="add",version="v1alpha1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="peerauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="peerauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="proxyconfigs.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="requestauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="requestauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="serviceentries.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="serviceentries.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="serviceentries.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="sidecars.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="sidecars.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="sidecars.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="telemetries.telemetry.istio.io",group="telemetry.istio.io",reason="add",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="telemetries.telemetry.istio.io",group="telemetry.istio.io",reason="add",version="v1alpha1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="virtualservices.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="virtualservices.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="virtualservices.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="wasmplugins.extensions.istio.io",group="extensions.istio.io",reason="add",version="v1alpha1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadentries.networking.istio.io",group="networking.istio.io",reason="add",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadentries.networking.istio.io",group="networking.istio.io",reason="add",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadentries.networking.istio.io",group="networking.istio.io",reason="add",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="remove",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="remove",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="remove",version="v1beta1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
-apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
-# HELP apiserver_longrunning_requests [STABLE] Gauge of all active long-running apiserver requests broken out by verb, group, version, resource, scope and component. Not all requests are tracked this way.
-# TYPE apiserver_longrunning_requests gauge
-apiserver_longrunning_requests{component="apiserver",group="",resource="configmaps",scope="cluster",subresource="",verb="WATCH",version="v1"} 1
-apiserver_longrunning_requests{component="apiserver",group="",resource="configmaps",scope="namespace",subresource="",verb="WATCH",version="v1"} 1
-apiserver_longrunning_requests{component="apiserver",group="",resource="configmaps",scope="resource",subresource="",verb="WATCH",version="v1"} 25
-apiserver_longrunning_requests{component="apiserver",group="",resource="endpoints",scope="cluster",subresource="",verb="WATCH",version="v1"} 2
+...
+
+$ k get --raw /metrics | awk -F{ '/^[^#]/ {print $1}' | sort | uniq -c
+      1 aggregator_discovery_aggregation_count_total 69
+     30 aggregator_unavailable_apiservice
+      1 aggregator_unavailable_apiservice_total
+     11 apiextensions_apiserver_validation_ratcheting_seconds_bucket
+      1 apiextensions_apiserver_validation_ratcheting_seconds_count 0
+      1 apiextensions_apiserver_validation_ratcheting_seconds_sum 0
+     14 apiextensions_openapi_v2_regeneration_count
+     30 apiextensions_openapi_v3_regeneration_count
+    371 apiserver_admission_controller_admission_duration_seconds_bucket
+     53 apiserver_admission_controller_admission_duration_seconds_count
+     53 apiserver_admission_controller_admission_duration_seconds_sum
+     56 apiserver_admission_step_admission_duration_seconds_bucket
+      8 apiserver_admission_step_admission_duration_seconds_count
+      8 apiserver_admission_step_admission_duration_seconds_sum
+     24 apiserver_admission_step_admission_duration_seconds_summary
+      8 apiserver_admission_step_admission_duration_seconds_summary_count
+      8 apiserver_admission_step_admission_duration_seconds_summary_sum
+      1 apiserver_audit_event_total 0
+      1 apiserver_audit_requests_rejected_total 0
+      2 apiserver_authorization_decisions_total
+     39 apiserver_cache_list_fetched_objects_total
+     38 apiserver_cache_list_returned_objects_total
+     39 apiserver_cache_list_total
+     12 apiserver_cel_compilation_duration_seconds_bucket
+      1 apiserver_cel_compilation_duration_seconds_count 2975
+      1 apiserver_cel_compilation_duration_seconds_sum 0.5799227729999976
+     12 apiserver_cel_evaluation_duration_seconds_bucket
+      1 apiserver_cel_evaluation_duration_seconds_count 0
+      1 apiserver_cel_evaluation_duration_seconds_sum 0
+     15 apiserver_client_certificate_expiration_seconds_bucket
+      1 apiserver_client_certificate_expiration_seconds_count 8065
+      1 apiserver_client_certificate_expiration_seconds_sum 2.154243771845216e+11
+      1 apiserver_clusterip_repair_reconcile_errors_total 0
+      2 apiserver_current_inflight_requests
+      2 apiserver_current_inqueue_requests
+      1 apiserver_envelope_encryption_dek_cache_fill_percent 0
+     13 apiserver_flowcontrol_current_executing_requests
+     13 apiserver_flowcontrol_current_executing_seats
+     10 apiserver_flowcontrol_current_inqueue_requests
+     10 apiserver_flowcontrol_current_inqueue_seats
+      8 apiserver_flowcontrol_current_limit_seats
+      8 apiserver_flowcontrol_current_r
+      8 apiserver_flowcontrol_demand_seats_average
+    104 apiserver_flowcontrol_demand_seats_bucket
+      8 apiserver_flowcontrol_demand_seats_count
+      8 apiserver_flowcontrol_demand_seats_high_watermark
+      8 apiserver_flowcontrol_demand_seats_smoothed
+      8 apiserver_flowcontrol_demand_seats_stdev
+      8 apiserver_flowcontrol_demand_seats_sum
+     13 apiserver_flowcontrol_dispatched_requests_total
+      6 apiserver_flowcontrol_dispatch_r
+      6 apiserver_flowcontrol_latest_s
+      8 apiserver_flowcontrol_lower_limit_seats
+     12 apiserver_flowcontrol_next_discounted_s_bounds
+     12 apiserver_flowcontrol_next_s_bounds
+      8 apiserver_flowcontrol_nominal_limit_seats
+    176 apiserver_flowcontrol_priority_level_request_utilization_bucket
+     16 apiserver_flowcontrol_priority_level_request_utilization_count
+     16 apiserver_flowcontrol_priority_level_request_utilization_sum
+    112 apiserver_flowcontrol_priority_level_seat_utilization_bucket
+      8 apiserver_flowcontrol_priority_level_seat_utilization_count
+      8 apiserver_flowcontrol_priority_level_seat_utilization_sum
+     64 apiserver_flowcontrol_read_vs_write_current_requests_bucket
+      4 apiserver_flowcontrol_read_vs_write_current_requests_count
+      4 apiserver_flowcontrol_read_vs_write_current_requests_sum
+    308 apiserver_flowcontrol_request_execution_seconds_bucket
+     22 apiserver_flowcontrol_request_execution_seconds_count
+     22 apiserver_flowcontrol_request_execution_seconds_sum
+     90 apiserver_flowcontrol_request_queue_length_after_enqueue_bucket
+     10 apiserver_flowcontrol_request_queue_length_after_enqueue_count
+     10 apiserver_flowcontrol_request_queue_length_after_enqueue_sum
+    154 apiserver_flowcontrol_request_wait_duration_seconds_bucket
+     11 apiserver_flowcontrol_request_wait_duration_seconds_count
+     11 apiserver_flowcontrol_request_wait_duration_seconds_sum
+      1 apiserver_flowcontrol_seat_fair_frac 2.3333333333333335
+      8 apiserver_flowcontrol_target_seats
+      8 apiserver_flowcontrol_upper_limit_seats
+     77 apiserver_flowcontrol_watch_count_samples_bucket
+     11 apiserver_flowcontrol_watch_count_samples_count
+     11 apiserver_flowcontrol_watch_count_samples_sum
+     65 apiserver_flowcontrol_work_estimated_seats_bucket
+     13 apiserver_flowcontrol_work_estimated_seats_count
+     13 apiserver_flowcontrol_work_estimated_seats_sum
+     26 apiserver_init_events_total
+      1 apiserver_kube_aggregator_x509_insecure_sha1_total 0
+      1 apiserver_kube_aggregator_x509_missing_san_total 0
+     70 apiserver_longrunning_requests
+      1 apiserver_nodeport_repair_reconcile_errors_total 0
+   1376 apiserver_request_body_size_bytes_bucket
+     43 apiserver_request_body_size_bytes_count
+     43 apiserver_request_body_size_bytes_sum
+   4392 apiserver_request_duration_seconds_bucket
+    183 apiserver_request_duration_seconds_count
+    183 apiserver_request_duration_seconds_sum
+     70 apiserver_request_filter_duration_seconds_bucket
+      5 apiserver_request_filter_duration_seconds_count
+      5 apiserver_request_filter_duration_seconds_sum
+   2596 apiserver_request_sli_duration_seconds_bucket
+    118 apiserver_request_sli_duration_seconds_count
+    118 apiserver_request_sli_duration_seconds_sum
+      1 apiserver_request_terminations_total
+     22 apiserver_request_timestamp_comparison_time_bucket
+      2 apiserver_request_timestamp_comparison_time_count
+      2 apiserver_request_timestamp_comparison_time_sum
+    202 apiserver_request_total
+    976 apiserver_response_sizes_bucket
+    122 apiserver_response_sizes_count
+    122 apiserver_response_sizes_sum
+     73 apiserver_selfrequest_total
+     15 apiserver_storage_data_key_generation_duration_seconds_bucket
+      1 apiserver_storage_data_key_generation_duration_seconds_count 0
+      1 apiserver_storage_data_key_generation_duration_seconds_sum 0
+      1 apiserver_storage_data_key_generation_failures_total 0
+      1 apiserver_storage_envelope_transformation_cache_misses_total 0
+     15 apiserver_storage_events_received_total
+     64 apiserver_storage_list_evaluated_objects_total
+     64 apiserver_storage_list_fetched_objects_total
+     64 apiserver_storage_list_returned_objects_total
+     64 apiserver_storage_list_total
+     63 apiserver_storage_objects
+      1 apiserver_storage_size_bytes
+      1 apiserver_tls_handshake_errors_total 44
+     11 apiserver_watch_cache_consistent_read_total
+     62 apiserver_watch_cache_events_dispatched_total
+     15 apiserver_watch_cache_events_received_total
+     62 apiserver_watch_cache_initializations_total
+    868 apiserver_watch_cache_read_wait_seconds_bucket
+     62 apiserver_watch_cache_read_wait_seconds_count
+     62 apiserver_watch_cache_read_wait_seconds_sum
+     62 apiserver_watch_cache_resource_version
+    558 apiserver_watch_events_sizes_bucket
+     62 apiserver_watch_events_sizes_count
+     62 apiserver_watch_events_sizes_sum
+     62 apiserver_watch_events_total
+   1116 apiserver_watch_list_duration_seconds_bucket
+     62 apiserver_watch_list_duration_seconds_count
+     62 apiserver_watch_list_duration_seconds_sum
+      1 apiserver_webhooks_x509_insecure_sha1_total 0
+      1 apiserver_webhooks_x509_missing_san_total 0
+      1 authenticated_user_requests
+      1 authentication_attempts
+     16 authentication_duration_seconds_bucket
+      1 authentication_duration_seconds_count
+      1 authentication_duration_seconds_sum
+      2 authentication_token_cache_active_fetch_count
+      1 authentication_token_cache_fetch_total
+     24 authentication_token_cache_request_duration_seconds_bucket
+      2 authentication_token_cache_request_duration_seconds_count
+      2 authentication_token_cache_request_duration_seconds_sum
+      2 authentication_token_cache_request_total
+      2 authorization_attempts_total
+     32 authorization_duration_seconds_bucket
+      2 authorization_duration_seconds_count
+      2 authorization_duration_seconds_sum
+      1 cardinality_enforcement_unexpected_categorizations_total 0
+      1 disabled_metrics_total 0
+     61 etcd_bookmark_counts
+      8 etcd_lease_object_counts_bucket
+      1 etcd_lease_object_counts_count 432
+      1 etcd_lease_object_counts_sum 1276
+   5616 etcd_request_duration_seconds_bucket
+    234 etcd_request_duration_seconds_count
+    234 etcd_request_duration_seconds_sum
+    234 etcd_requests_total
+     44 field_validation_request_duration_seconds_bucket
+      2 field_validation_request_duration_seconds_count
+      2 field_validation_request_duration_seconds_sum
+      1 go_cgo_go_to_c_calls_calls_total 0
+      1 go_cpu_classes_gc_mark_assist_cpu_seconds_total 0.231671694
+      1 go_cpu_classes_gc_mark_dedicated_cpu_seconds_total 3.372924229
+      1 go_cpu_classes_gc_mark_idle_cpu_seconds_total 5.207456308
+      1 go_cpu_classes_gc_pause_cpu_seconds_total 0.15722453
+      1 go_cpu_classes_gc_total_cpu_seconds_total 8.969276761
+      1 go_cpu_classes_idle_cpu_seconds_total 8338.851998649
+      1 go_cpu_classes_scavenge_assist_cpu_seconds_total 6.73e-07
+      1 go_cpu_classes_scavenge_background_cpu_seconds_total 0.047762291
+      1 go_cpu_classes_scavenge_total_cpu_seconds_total 0.047762964
+      1 go_cpu_classes_total_cpu_seconds_total 8476.29163925
+      1 go_cpu_classes_user_cpu_seconds_total 128.422600876
+      1 go_gc_cycles_automatic_gc_cycles_total 64
+      1 go_gc_cycles_forced_gc_cycles_total 0
+      1 go_gc_cycles_total_gc_cycles_total 64
+      5 go_gc_duration_seconds
+      1 go_gc_duration_seconds_count 64
+      1 go_gc_duration_seconds_sum 0.149576103
+      1 go_gc_gogc_percent 100
+      1 go_gc_gomemlimit_bytes 9.223372036854776e+18
+     12 go_gc_heap_allocs_by_size_bytes_bucket
+      1 go_gc_heap_allocs_by_size_bytes_count 3.9633219e+07
+      1 go_gc_heap_allocs_by_size_bytes_sum 4.769794504e+09
+      1 go_gc_heap_allocs_bytes_total 4.769794504e+09
+      1 go_gc_heap_allocs_objects_total 3.9633219e+07
+     12 go_gc_heap_frees_by_size_bytes_bucket
+      1 go_gc_heap_frees_by_size_bytes_count 3.8264349e+07
+      1 go_gc_heap_frees_by_size_bytes_sum 4.566436776e+09
+      1 go_gc_heap_frees_bytes_total 4.566436776e+09
+      1 go_gc_heap_frees_objects_total 3.8264349e+07
+      1 go_gc_heap_goal_bytes 3.42738912e+08
+      1 go_gc_heap_live_bytes 1.68371248e+08
+      1 go_gc_heap_objects_objects 1.36887e+06
+      1 go_gc_heap_tiny_allocs_objects_total 2.481718e+06
+      1 go_gc_limiter_last_enabled_gc_cycle 0
+      8 go_gc_pauses_seconds_bucket
+      1 go_gc_pauses_seconds_count 128
+      1 go_gc_pauses_seconds_sum 0.132726144
+      1 go_gc_scan_globals_bytes 544560
+      1 go_gc_scan_heap_bytes 1.28238136e+08
+      1 go_gc_scan_stack_bytes 5.451856e+06
+      1 go_gc_scan_total_bytes 1.34234552e+08
+      1 go_gc_stack_starting_size_bytes 4096
+      1 go_godebug_non_default_behavior_asynctimerchan_events_total 0
+      1 go_godebug_non_default_behavior_execerrdot_events_total 0
+      1 go_godebug_non_default_behavior_gocachehash_events_total 0
+      1 go_godebug_non_default_behavior_gocachetest_events_total 0
+      1 go_godebug_non_default_behavior_gocacheverify_events_total 0
+      1 go_godebug_non_default_behavior_gotypesalias_events_total 0
+      1 go_godebug_non_default_behavior_http2client_events_total 0
+      1 go_godebug_non_default_behavior_http2server_events_total 0
+      1 go_godebug_non_default_behavior_httplaxcontentlength_events_total 0
+      1 go_godebug_non_default_behavior_httpmuxgo121_events_total 0
+      1 go_godebug_non_default_behavior_httpservecontentkeepheaders_events_total 0
+      1 go_godebug_non_default_behavior_installgoroot_events_total 0
+      1 go_godebug_non_default_behavior_multipartmaxheaders_events_total 0
+      1 go_godebug_non_default_behavior_multipartmaxparts_events_total 0
+      1 go_godebug_non_default_behavior_multipathtcp_events_total 0
+      1 go_godebug_non_default_behavior_netedns0_events_total 0
+      1 go_godebug_non_default_behavior_panicnil_events_total 0
+      1 go_godebug_non_default_behavior_randautoseed_events_total 0
+      1 go_godebug_non_default_behavior_tarinsecurepath_events_total 0
+      1 go_godebug_non_default_behavior_tls10server_events_total 0
+      1 go_godebug_non_default_behavior_tls3des_events_total 0
+      1 go_godebug_non_default_behavior_tlsmaxrsasize_events_total 0
+      1 go_godebug_non_default_behavior_tlsrsakex_events_total 0
+      1 go_godebug_non_default_behavior_tlsunsafeekm_events_total 0
+      1 go_godebug_non_default_behavior_winreadlinkvolume_events_total 0
+      1 go_godebug_non_default_behavior_winsymlink_events_total 0
+      1 go_godebug_non_default_behavior_x509keypairleaf_events_total 0
+      1 go_godebug_non_default_behavior_x509negativeserial_events_total 0
+      1 go_godebug_non_default_behavior_x509sha1_events_total 0
+      1 go_godebug_non_default_behavior_x509usefallbackroots_events_total 0
+      1 go_godebug_non_default_behavior_x509usepolicies_events_total 0
+      1 go_godebug_non_default_behavior_zipinsecurepath_events_total 0
+      1 go_goroutines 2590
+      1 go_info
+      1 go_memory_classes_heap_free_bytes 3.0031872e+07
+      1 go_memory_classes_heap_objects_bytes 2.03357728e+08
+      1 go_memory_classes_heap_released_bytes 2.62144e+06
+      1 go_memory_classes_heap_stacks_bytes 2.0578304e+07
+      1 go_memory_classes_heap_unused_bytes 6.2144992e+07
+      1 go_memory_classes_metadata_mcache_free_bytes 13200
+      1 go_memory_classes_metadata_mcache_inuse_bytes 2400
+      1 go_memory_classes_metadata_mspan_free_bytes 480320
+      1 go_memory_classes_metadata_mspan_inuse_bytes 4.49728e+06
+      1 go_memory_classes_metadata_other_bytes 6.368552e+06
+      1 go_memory_classes_os_stacks_bytes 0
+      1 go_memory_classes_other_bytes 1.335913e+06
+      1 go_memory_classes_profiling_buckets_bytes 3.298567e+06
+      1 go_memory_classes_total_bytes 3.34730568e+08
+      1 go_memstats_alloc_bytes 2.03357728e+08
+      1 go_memstats_alloc_bytes_total 4.769794504e+09
+      1 go_memstats_buck_hash_sys_bytes 3.298567e+06
+      1 go_memstats_frees_total 4.0746067e+07
+      1 go_memstats_gc_sys_bytes 6.368552e+06
+      1 go_memstats_heap_alloc_bytes 2.03357728e+08
+      1 go_memstats_heap_idle_bytes 3.2653312e+07
+      1 go_memstats_heap_inuse_bytes 2.6550272e+08
+      1 go_memstats_heap_objects 1.36887e+06
+      1 go_memstats_heap_released_bytes 2.62144e+06
+      1 go_memstats_heap_sys_bytes 2.98156032e+08
+      1 go_memstats_last_gc_time_seconds 1.7427548126575298e+09
+      1 go_memstats_lookups_total 0
+      1 go_memstats_mallocs_total 4.2114937e+07
+      1 go_memstats_mcache_inuse_bytes 2400
+      1 go_memstats_mcache_sys_bytes 15600
+      1 go_memstats_mspan_inuse_bytes 4.49728e+06
+      1 go_memstats_mspan_sys_bytes 4.9776e+06
+      1 go_memstats_next_gc_bytes 3.42738912e+08
+      1 go_memstats_other_sys_bytes 1.335913e+06
+      1 go_memstats_stack_inuse_bytes 2.0578304e+07
+      1 go_memstats_stack_sys_bytes 2.0578304e+07
+      1 go_memstats_sys_bytes 3.34730568e+08
+      1 go_sched_gomaxprocs_threads 2
+      1 go_sched_goroutines_goroutines 2590
+      8 go_sched_latencies_seconds_bucket
+      1 go_sched_latencies_seconds_count 565060
+      1 go_sched_latencies_seconds_sum 5.381062976
+      8 go_sched_pauses_stopping_gc_seconds_bucket
+      1 go_sched_pauses_stopping_gc_seconds_count 128
+      1 go_sched_pauses_stopping_gc_seconds_sum 0.130974144
+      8 go_sched_pauses_stopping_other_seconds_bucket
+      1 go_sched_pauses_stopping_other_seconds_count 0
+      1 go_sched_pauses_stopping_other_seconds_sum 0
+      8 go_sched_pauses_total_gc_seconds_bucket
+      1 go_sched_pauses_total_gc_seconds_count 128
+      1 go_sched_pauses_total_gc_seconds_sum 0.132726144
+      8 go_sched_pauses_total_other_seconds_bucket
+      1 go_sched_pauses_total_other_seconds_count 0
+      1 go_sched_pauses_total_other_seconds_sum 0
+      1 go_sync_mutex_wait_total_seconds_total 0.242055032
+      1 go_threads 9
+      6 grpc_client_handled_total
+      1 grpc_client_msg_received_total
+      6 grpc_client_msg_sent_total
+      6 grpc_client_started_total
+      1 hidden_metrics_total 8
+      1 kube_apiserver_clusterip_allocator_allocated_ips
+      1 kube_apiserver_clusterip_allocator_allocation_total
+      1 kube_apiserver_clusterip_allocator_available_ips
+      1 kube_apiserver_nodeport_allocator_allocated_ports 0
+      1 kube_apiserver_nodeport_allocator_available_ports 0
+      1 kube_apiserver_pod_logs_backend_tls_failure_total 0
+      1 kube_apiserver_pod_logs_insecure_backend_total
+      1 kubernetes_build_info
+    178 kubernetes_feature_enabled
+     39 node_authorizer_graph_actions_duration_seconds_bucket
+      3 node_authorizer_graph_actions_duration_seconds_count
+      3 node_authorizer_graph_actions_duration_seconds_sum
+      3 pod_security_evaluations_total
+      4 pod_security_exemptions_total
+      1 process_cpu_seconds_total 129.43
+      1 process_max_fds 1.048576e+06
+      1 process_open_fds 129
+      1 process_resident_memory_bytes 4.1238528e+08
+      1 process_start_time_seconds 1.74275057196e+09
+      1 process_virtual_memory_bytes 1.629036544e+09
+      1 process_virtual_memory_max_bytes 1.8446744073709552e+19
+      3 registered_metrics_total
+     12 rest_client_exec_plugin_certificate_rotation_age_bucket
+      1 rest_client_exec_plugin_certificate_rotation_age_count 0
+      1 rest_client_exec_plugin_certificate_rotation_age_sum 0
+      1 rest_client_exec_plugin_ttl_seconds +Inf
+     26 rest_client_request_duration_seconds_bucket
+      2 rest_client_request_duration_seconds_count
+      2 rest_client_request_duration_seconds_sum
+     24 rest_client_request_size_bytes_bucket
+      2 rest_client_request_size_bytes_count
+      2 rest_client_request_size_bytes_sum
+      3 rest_client_requests_total
+     24 rest_client_response_size_bytes_bucket
+      2 rest_client_response_size_bytes_count
+      2 rest_client_response_size_bytes_sum
+      1 rest_client_transport_cache_entries 4
+      2 rest_client_transport_create_calls_total
+      1 serviceaccount_invalid_legacy_auto_token_uses_total 0
+      1 serviceaccount_legacy_auto_token_uses_total 0
+      1 serviceaccount_legacy_manual_token_uses_total 0
+      1 serviceaccount_legacy_tokens_total 0
+      1 serviceaccount_stale_tokens_total 0
+      1 serviceaccount_valid_tokens_total 323
+     62 watch_cache_capacity
+      1 watch_cache_capacity_increase_total
+     26 workqueue_adds_total
+     26 workqueue_depth
+     26 workqueue_longest_running_processor_seconds
+    286 workqueue_queue_duration_seconds_bucket
+     26 workqueue_queue_duration_seconds_count
+     26 workqueue_queue_duration_seconds_sum
+     25 workqueue_retries_total
+     26 workqueue_unfinished_work_seconds
+    286 workqueue_work_duration_seconds_bucket
+     26 workqueue_work_duration_seconds_count
+     26 workqueue_work_duration_seconds_sum
 ```
 
 ### Try /metrics access from pod using "default" Service Account
@@ -245,6 +533,19 @@ The Role "view-api-server-metrics" is invalid: rules[0].nonResourceURLs: Invalid
 ```
 
 So the rules have to use ClusterRole and ClusterRoleBinding, fix and apply again:
+```
+$ kubectl apply -f sa-monitoring.yaml 
+serviceaccount/monitoring created
+clusterrole.rbac.authorization.k8s.io/view-api-server-metrics created
+clusterrolebinding.rbac.authorization.k8s.io/view-api-server-metrics created
+```
+
+Update deployments to use "monitoring" account and redeploy:
+```
+
+
+
+```
 
 
 
@@ -516,11 +817,80 @@ kube-system   kube-dns         ClusterIP   10.255.0.10      <none>        53/UDP
 ```
 
 
-Verify kubectl top works:
+Verify kubectl top works and ferify /apis/metrics.k8s.io also work (note that v1beta1 is taken from "kubectl api-resources" and this api is self-declaratory):
 ```
 $ k top node worker1
 NAME      CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
 worker1   19m          0%       585Mi           7%
+
+$ k get --raw /apis/metrics.k8s.io/ | jq
+{
+  "kind": "APIGroup",
+  "apiVersion": "v1",
+  "name": "metrics.k8s.io",
+  "versions": [
+    {
+      "groupVersion": "metrics.k8s.io/v1beta1",
+      "version": "v1beta1"
+    }
+  ],
+  "preferredVersion": {
+    "groupVersion": "metrics.k8s.io/v1beta1",
+    "version": "v1beta1"
+  }
+}
+
+$ k get --raw /apis/metrics.k8s.io/v1beta1/ | jq
+{
+  "kind": "APIResourceList",
+  "apiVersion": "v1",
+  "groupVersion": "metrics.k8s.io/v1beta1",
+  "resources": [
+    {
+      "name": "nodes",
+      "singularName": "",
+      "namespaced": false,
+      "kind": "NodeMetrics",
+      "verbs": [
+        "get",
+        "list"
+      ]
+    },
+    {
+      "name": "pods",
+      "singularName": "",
+      "namespaced": true,
+      "kind": "PodMetrics",
+      "verbs": [
+        "get",
+        "list"
+      ]
+    }
+  ]
+}
+
+$ k get --raw /apis/metrics.k8s.io/v1beta1/nodes/worker1 | jq
+{
+  "kind": "NodeMetrics",
+  "apiVersion": "metrics.k8s.io/v1beta1",
+  "metadata": {
+    "name": "worker1",
+    "creationTimestamp": "2025-03-23T18:13:27Z",
+    "labels": {
+      "beta.kubernetes.io/arch": "amd64",
+      "beta.kubernetes.io/os": "linux",
+      "kubernetes.io/arch": "amd64",
+      "kubernetes.io/hostname": "worker1",
+      "kubernetes.io/os": "linux"
+    }
+  },
+  "timestamp": "2025-03-23T18:13:18Z",
+  "window": "22.029s",
+  "usage": {
+    "cpu": "14958645n",
+    "memory": "413432Ki"
+  }
+}
 ```
 
 Note: docs state that right now kubelet is exposing metric unsecurely: https://github.com/kubernetes-sigs/metrics-server/blob/master/FAQ.md#how-to-run-metrics-server-securely
@@ -644,5 +1014,4 @@ root@http-server-5c4c6474b5-2jf8g:~# curl -k --header "Authorization: Bearer $TO
   "details": {},
   "code": 403
 ```
-
 
