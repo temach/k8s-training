@@ -466,6 +466,7 @@ CoreDNS is running at https://10.128.0.16:6443/api/v1/namespaces/kube-system/ser
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ```
 
+
 Try to exec into pod to reach this service:
 ```
 $ k exec -it http-server-5c4c6474b5-2jf8g -- /bin/bash
@@ -521,6 +522,7 @@ no
 ```
 
 
+
 # Service account with kube-api-server /metrics endpoint access
 
 
@@ -540,11 +542,71 @@ clusterrole.rbac.authorization.k8s.io/view-api-server-metrics created
 clusterrolebinding.rbac.authorization.k8s.io/view-api-server-metrics created
 ```
 
-Update deployments to use "monitoring" account and redeploy:
+
+Get sa token as a separate token for testing (default duration is 1 hour), see:
+- https://kubernetes.io/docs/tasks/administer-cluster/access-cluster-api/#without-kubectl-proxy:
+- https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens
+
+```
+$ kubectl create token monitoring --duration 1h
+eyJhbGciOiJSUzI1NiIsImtpZCI6Imp5R0QtQVNsNDE0V1hqR3RoM2lWMl9xNEtmZktfdHRZWEFnM191eVpvNnMifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzQyNzYwNjU2LCJpYXQiOjE3NDI3NTcwNTYsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiYmRmNzE0ZDgtM2M3YS00MTQ0LTlkMzktMjYwN2YyMWViMTFlIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwic2VydmljZWFjY291bnQiOnsibmFtZSI6Im1vbml0b3JpbmciLCJ1aWQiOiJjOTkxYjhmNC0yMTA1LTRkMDAtYTM4NS0wZTY1ZjY0ZjVhNzMifX0sIm5iZiI6MTc0Mjc1NzA1Niwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6bW9uaXRvcmluZyJ9.tP7_qBg4fwy2H6_nnxImuZMraAAc3XDDYOnjvi5DJ1XSfDxkqFfj9O2KBBjADvRTqRXDGm-aMAmnoSDaq6hJzIcA_OipImKz6UvrJJU3bOJ5jkwZcN_aLRa8idAZegkbpHGwIiGZKHVJ-4cSxFhHZOCfUtGu3O7BJzQ1bcQ9cGMlN7fj94OfY8-dqQAHZu-FGpeKJ8O5DxPCUZC67fh3JYefx69siSXIHHpvDHC8WI38fnJ1Pb3etLYEMGK1kdlq10XYnr8cuJ1rMRpkv833fT7ibbAHpN1ag7evj74zUHNbW_2e2Vj8GEsKjZrE6o85XtzEtRmWpXsJEsuH3KDGAg
+
+# decode with jwt.io
+{
+  "aud": [
+    "https://kubernetes.default.svc.cluster.local"
+  ],
+  "exp": 1742759822,   // 2025-03-23T19:57:02Z
+  "iat": 1742756222,   // 2025-03-23T18:57:02Z
+  "iss": "https://kubernetes.default.svc.cluster.local",
+  "jti": "4255d32d-db16-42fc-9c3c-be9d47314e0f",
+  "kubernetes.io": {
+    "namespace": "default",
+    "serviceaccount": {
+      "name": "monitoring",
+      "uid": "c991b8f4-2105-4d00-a385-0e65f64f5a73"
+    }
+  },
+  "nbf": 1742756222,   // 2025-03-23T18:57:02Z
+  "sub": "system:serviceaccount:default:monitoring"
+}
+```
+
+With this token requesting /metrics works (both from inside and from outside of cluster):
+```
+$ export TOKEN="eyJhbGciOiJSUzI1NiIsImtpZCI6Imp5R0QtQVNsNDE0V1hqR3RoM2lWMl9xNEtmZktfdHRZWEFnM191eVpvNnMifQ.....Ag"
+
+
+$ curl -k --header "Authorization: Bearer $TOKEN" https://kubernetes.default/metrics
+# HELP aggregator_discovery_aggregation_count_total [ALPHA] Counter of number of times discovery was aggregated
+# TYPE aggregator_discovery_aggregation_count_total counter
+aggregator_discovery_aggregation_count_total 96
+# HELP aggregator_unavailable_apiservice [ALPHA] Gauge of APIServices which are marked as unavailable broken down by APIService name.
+# TYPE aggregator_unavailable_apiservice gauge
+aggregator_unavailable_apiservice{name="v1."} 0
+aggregator_unavailable_apiservice{name="v1.admissionregistration.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apiextensions.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apps"} 0
+
+
+$ curl -k --header "Authorization: Bearer $TOKEN" https://158.160.61.136:6443/metrics
+# HELP aggregator_discovery_aggregation_count_total [ALPHA] Counter of number of times discovery was aggregated
+# TYPE aggregator_discovery_aggregation_count_total counter
+aggregator_discovery_aggregation_count_total 100
+# HELP aggregator_unavailable_apiservice [ALPHA] Gauge of APIServices which are marked as unavailable broken down by APIService name.
+# TYPE aggregator_unavailable_apiservice gauge
+aggregator_unavailable_apiservice{name="v1."} 0
+aggregator_unavailable_apiservice{name="v1.admissionregistration.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apiextensions.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apps"} 0
 ```
 
 
-
+Update deployments to use "monitoring" account and redeploy:
+```
+$ k apply -f deployment.yaml 
+service/http-server unchanged
+deployment.apps/http-server configured
 ```
 
 

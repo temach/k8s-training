@@ -27,10 +27,29 @@ spec:
         app.kubernetes.io/name: http-server
         app.kubernetes.io/version: 0.6.9
     spec:
+      serviceAccountName: monitoring
+      volumes:
+        - name: shared
+          emptyDir: {}
+      initContainers:
+        - name: generate-index
+          image: nicolaka/netshoot:v0.13
+          command: ["sh", "-c"]
+          args: 
+          args:
+          - |
+            export TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            curl -k --header "Authorization: Bearer $TOKEN" https://kubernetes.default.svc/metrics > /init/metrics.html
+          volumeMounts:
+            - name: shared
+              mountPath: /init
       containers:
         - name: server-container
           image: python:3.13
           ports:
             - containerPort: 8080
           command: ["python"]
-          args: ["-m", "http.server", "8080", "--directory", "/opt"]
+          args: ["-m", "http.server", "8080", "--directory", "/homework"]
+          volumeMounts:
+            - name: shared
+              mountPath: /homework
