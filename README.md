@@ -275,15 +275,13 @@ The index.html on storage medium was changed. Both pods started returning the la
 The PVC had `accessMode: - ReadWriteOnce` which did not stop second pod from updating index.html on the physical-volume.
 see: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
 
-Also note: these physical volumes have support for the volume capacity limit, nothing will stop folder from growing.
-
 
 ### test if storage limit is enforced for PV
 
 local provisioner does not enforce PV limit.
 see: https://kubernetes.io/docs/concepts/storage/volumes/#local
 
-Attach to python pod and try to generate multiple 1GB files (PV is 1GB)
+Attach to python pod and try to generate multiple large files (PV limit is set to 1GB)
 ```
 $ k exec -it http-server-5bf7c86586-9p5qd -- /bin/bash            
 Defaulted container "server-container" out of: server-container, generate-index (init)
@@ -333,11 +331,31 @@ tmpfs           3.9G     0  3.9G   0% /proc/acpi
 tmpfs           3.9G     0  3.9G   0% /sys/firmware
 ```
 
+Checking from the server side, the same is visible:
+```
+$ yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name worker1
+
+root@worker1:/opt/my-local-storage# cd /opt/my-local-storage
+
+root@worker1:/opt/my-local-storage# find ./worker1-pv1
+./worker1-pv1
+./worker1-pv1/index.html
+./worker1-pv1/dummy-two-1GB.data
+./worker1-pv1/dummy-three-1GB.data
+./worker1-pv1/dummy-1GB.data
+./worker1-pv1/conf
+```
+
+These physical volumes do not support volume capacity limit, nothing will stop folder from growing.
 
 
-### distributed dynamic storage (e.g. GlusterFS) over the node's local storage
+### distributed dynamic storage (maybe GlusterFS) over the node's local storage
 
-see: https://kubernetes.io/blog/2018/04/13/local-persistent-volumes-beta
+see:
+- https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner/blob/master/docs/getting-started.md
+- https://github.com/rancher/local-path-provisioner
+- https://github.com/openebs/dynamic-localpv-provisioner and https://openebs.io/
+- https://kubernetes.io/blog/2018/04/13/local-persistent-volumes-beta
 
 
 
