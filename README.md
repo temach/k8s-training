@@ -417,7 +417,7 @@ $ k get --raw /metrics | awk -F{ '/^[^#]/ {print $1}' | sort | uniq -c
      26 workqueue_work_duration_seconds_sum
 ```
 
-### Try /metrics access from pod using "default" Service Account
+### Try /metrics access from pod using current "default" Service Account
 
 Create deployment:
 ```
@@ -542,6 +542,12 @@ clusterrole.rbac.authorization.k8s.io/view-api-server-metrics created
 clusterrolebinding.rbac.authorization.k8s.io/view-api-server-metrics created
 ```
 
+Verify:
+```
+$ kubectl auth can-i get /metrics --as=system:serviceaccount:default:monitoring  
+yes
+```
+
 
 Get sa token as a separate token for testing (default duration is 1 hour), see:
 - https://kubernetes.io/docs/tasks/administer-cluster/access-cluster-api/#without-kubectl-proxy:
@@ -602,22 +608,186 @@ aggregator_unavailable_apiservice{name="v1.apps"} 0
 ```
 
 
-Update deployments to use "monitoring" account and redeploy:
+Update deployments to use "monitoring" account and to scrape api-server metrics on pod startup and redeploy:
 ```
 $ k apply -f deployment.yaml 
 service/http-server unchanged
 deployment.apps/http-server configured
+
+$ k port-forward svc/http-server 9000:http-main
+Forwarding from 127.0.0.1:9000 -> 8080
+Forwarding from [::1]:9000 -> 8080
+
+$ curl http://localhost:9000/
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Directory listing for /</title>
+</head>
+<body>
+<h1>Directory listing for /</h1>
+<hr>
+<ul>
+<li><a href="metrics.html">metrics.html</a></li>
+</ul>
+<hr>
+</body>
+</html>
+
+$ curl http://localhost:9000/metrics.html
+# HELP aggregator_discovery_aggregation_count_total [ALPHA] Counter of number of times discovery was aggregated
+# TYPE aggregator_discovery_aggregation_count_total counter
+aggregator_discovery_aggregation_count_total 130
+# HELP aggregator_unavailable_apiservice [ALPHA] Gauge of APIServices which are marked as unavailable broken down by APIService name.
+# TYPE aggregator_unavailable_apiservice gauge
+aggregator_unavailable_apiservice{name="v1."} 0
+aggregator_unavailable_apiservice{name="v1.admissionregistration.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apiextensions.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apps"} 0
+aggregator_unavailable_apiservice{name="v1.authentication.k8s.io"} 0
 ```
 
 
+### Create admin account "cd" in "default" namespace 
+
+Plan to re-use "admin" cluster role with a namespaced RoleBinding.
+
+Interesting that this role does not allow to create/delete namespaces.
+```
+$ k describe clusterrole admin
+Name:         admin
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+PolicyRule:
+  Resources                                       Non-Resource URLs  Resource Names  Verbs
+  ---------                                       -----------------  --------------  -----
+  leases.coordination.k8s.io                      []                 []              [create delete deletecollection get list patch update watch]
+  rolebindings.rbac.authorization.k8s.io          []                 []              [create delete deletecollection get list patch update watch]
+  roles.rbac.authorization.k8s.io                 []                 []              [create delete deletecollection get list patch update watch]
+  configmaps                                      []                 []              [create delete deletecollection patch update get list watch]
+  events                                          []                 []              [create delete deletecollection patch update get list watch]
+  persistentvolumeclaims                          []                 []              [create delete deletecollection patch update get list watch]
+  pods                                            []                 []              [create delete deletecollection patch update get list watch]
+  replicationcontrollers/scale                    []                 []              [create delete deletecollection patch update get list watch]
+  replicationcontrollers                          []                 []              [create delete deletecollection patch update get list watch]
+  services                                        []                 []              [create delete deletecollection patch update get list watch]
+  daemonsets.apps                                 []                 []              [create delete deletecollection patch update get list watch]
+  deployments.apps/scale                          []                 []              [create delete deletecollection patch update get list watch]
+  deployments.apps                                []                 []              [create delete deletecollection patch update get list watch]
+  replicasets.apps/scale                          []                 []              [create delete deletecollection patch update get list watch]
+  replicasets.apps                                []                 []              [create delete deletecollection patch update get list watch]
+  statefulsets.apps/scale                         []                 []              [create delete deletecollection patch update get list watch]
+  statefulsets.apps                               []                 []              [create delete deletecollection patch update get list watch]
+  horizontalpodautoscalers.autoscaling            []                 []              [create delete deletecollection patch update get list watch]
+  cronjobs.batch                                  []                 []              [create delete deletecollection patch update get list watch]
+  jobs.batch                                      []                 []              [create delete deletecollection patch update get list watch]
+  daemonsets.extensions                           []                 []              [create delete deletecollection patch update get list watch]
+  deployments.extensions/scale                    []                 []              [create delete deletecollection patch update get list watch]
+  deployments.extensions                          []                 []              [create delete deletecollection patch update get list watch]
+  ingresses.extensions                            []                 []              [create delete deletecollection patch update get list watch]
+  networkpolicies.extensions                      []                 []              [create delete deletecollection patch update get list watch]
+  replicasets.extensions/scale                    []                 []              [create delete deletecollection patch update get list watch]
+  replicasets.extensions                          []                 []              [create delete deletecollection patch update get list watch]
+  replicationcontrollers.extensions/scale         []                 []              [create delete deletecollection patch update get list watch]
+  ingresses.networking.k8s.io                     []                 []              [create delete deletecollection patch update get list watch]
+  networkpolicies.networking.k8s.io               []                 []              [create delete deletecollection patch update get list watch]
+  poddisruptionbudgets.policy                     []                 []              [create delete deletecollection patch update get list watch]
+  deployments.apps/rollback                       []                 []              [create delete deletecollection patch update]
+  deployments.extensions/rollback                 []                 []              [create delete deletecollection patch update]
+  pods/eviction                                   []                 []              [create]
+  serviceaccounts/token                           []                 []              [create]
+  localsubjectaccessreviews.authorization.k8s.io  []                 []              [create]
+  pods/attach                                     []                 []              [get list watch create delete deletecollection patch update]
+  pods/exec                                       []                 []              [get list watch create delete deletecollection patch update]
+  pods/portforward                                []                 []              [get list watch create delete deletecollection patch update]
+  pods/proxy                                      []                 []              [get list watch create delete deletecollection patch update]
+  secrets                                         []                 []              [get list watch create delete deletecollection patch update]
+  services/proxy                                  []                 []              [get list watch create delete deletecollection patch update]
+  bindings                                        []                 []              [get list watch]
+  endpoints                                       []                 []              [get list watch]
+  limitranges                                     []                 []              [get list watch]
+  namespaces/status                               []                 []              [get list watch]
+  namespaces                                      []                 []              [get list watch]
+  persistentvolumeclaims/status                   []                 []              [get list watch]
+  pods/log                                        []                 []              [get list watch]
+  pods/status                                     []                 []              [get list watch]
+  replicationcontrollers/status                   []                 []              [get list watch]
+  resourcequotas/status                           []                 []              [get list watch]
+  resourcequotas                                  []                 []              [get list watch]
+  services/status                                 []                 []              [get list watch]
+  controllerrevisions.apps                        []                 []              [get list watch]
+  daemonsets.apps/status                          []                 []              [get list watch]
+  deployments.apps/status                         []                 []              [get list watch]
+  replicasets.apps/status                         []                 []              [get list watch]
+  statefulsets.apps/status                        []                 []              [get list watch]
+  horizontalpodautoscalers.autoscaling/status     []                 []              [get list watch]
+  cronjobs.batch/status                           []                 []              [get list watch]
+  jobs.batch/status                               []                 []              [get list watch]
+  endpointslices.discovery.k8s.io                 []                 []              [get list watch]
+  daemonsets.extensions/status                    []                 []              [get list watch]
+  deployments.extensions/status                   []                 []              [get list watch]
+  ingresses.extensions/status                     []                 []              [get list watch]
+  replicasets.extensions/status                   []                 []              [get list watch]
+  nodes.metrics.k8s.io                            []                 []              [get list watch]
+  pods.metrics.k8s.io                             []                 []              [get list watch]
+  ingresses.networking.k8s.io/status              []                 []              [get list watch]
+  poddisruptionbudgets.policy/status              []                 []              [get list watch]
+  serviceaccounts                                 []                 []              [impersonate create delete deletecollection patch update get list watch]
+
+$ kubectl apply -f sa-cd.yaml 
+serviceaccount/cd created
+rolebinding.rbac.authorization.k8s.io/admin-cd created
+
+$ kubectl create token cd --duration 12h
+eyJhbGciOiJSUzI1NiIsImtpZCI6Imp5R0QtQVNsNDE0V1hqR3RoM2lWMl9xNEtmZktfdHRZWEFnM191eVpvNnMifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzQyODAzMjg2LCJpYXQiOjE3NDI3NjAwODYsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwianRpIjoiOTk4MWExZTgtOGZlMi00MDJmLTk0NzItZTM5NjNhZmQ0NjRmIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImNkIiwidWlkIjoiZWZhNTU5ZjYtOWUwOS00MzY2LTg0MjUtMzE5Yzc1YzFmOGQ1In19LCJuYmYiOjE3NDI3NjAwODYsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmNkIn0.XM2oo8xUmFiiZ5BcQI3vvtyyegvUuF4W7LChfcE1CVvjCsUnI0V969cndfL2dKyAsQGext6uHDDL26nX79fRolam8aW5jQZexwg-_uGoT-eozJbBde5XzgYEH_OzAWlMeCzwAy-OI9AC-5DQa9DXhmeNEz0RGlRDPMh5EPmBbkRJ73NfXVgWkz4jcwyG3Bw_BEH5ezVg4oZ9QweqZDmmdydoL1t-34IJuzSQcf62QnD4owOd4uzEXdT1zkZmBNXvO-WKVhAOh2h1hUOzUkCR22b-u-2dTsmog5KRDa1Gum6G2KvSjtZy-PiD8pCUZjAcj6cEixRnetyzSThLUCQFtQ
+
+# jwt.io analysis, token lasts 12h
+{
+  "aud": [
+    "https://kubernetes.default.svc.cluster.local"
+  ],
+  "exp": 1742803286,     // 2025-03-24T08:01:26Z
+  "iat": 1742760086,     // 2025-03-23T20:01:26Z
+  "iss": "https://kubernetes.default.svc.cluster.local",
+  "jti": "9981a1e8-8fe2-402f-9472-e3963afd464f",
+  "kubernetes.io": {
+    "namespace": "default",
+    "serviceaccount": {
+      "name": "cd",
+      "uid": "efa559f6-9e09-4366-8425-319c75c1f8d5"
+    }
+  },
+  "nbf": 1742760086,     // 2025-03-23T20:01:26Z
+  "sub": "system:serviceaccount:default:cd"
+}
+```
 
 
+Verify that kubeconfig works:
+```
+~/.kube$ cp kubeconfig.yaml config 
 
+~/.kube$ k get pods
+NAME                              READY   STATUS    RESTARTS   AGE
+http-server-678f8f4bb7-xr46l      1/1     Running   0          36m
+metrics-server-6f665c9d54-x8kvh   1/1     Running   0          148m
 
+~/.kube$ k get pods -A
+Error from server (Forbidden): pods is forbidden: User "system:serviceaccount:default:cd" cannot list resource "pods" in API group "" at the cluster scope
 
+~/.kube$ k auth whoami
+ATTRIBUTE                                           VALUE
+Username                                            system:serviceaccount:default:cd
+UID                                                 efa559f6-9e09-4366-8425-319c75c1f8d5
+Groups                                              [system:serviceaccounts system:serviceaccounts:default system:authenticated]
+Extra: authentication.kubernetes.io/credential-id   [JTI=e4c9d84c-7b97-431b-ac41-be613bc3ba57]
+```
 
-
-
+To check without creating kubeconfig, see https://kubernetes.io/docs/reference/access-authn-authz/authentication/#option-2-use-the-token-option:
+```
+$ kubectl --token=eyJhbGciOiJSUzI1NiIsImtpZCI6Imp5R0QtQVNsNDE0V1hqR3RoM2lWMl9xNEtmZktfdHRZWEFnM191eVpvNnMifQ...tQ get nodes
+```
 
 
 # Install metrics-server
