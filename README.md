@@ -1,4 +1,4 @@
-# Service account with kube-api-server /metrics endpoint access
+# Preparation for task
 
 ### About metrics api
 
@@ -103,7 +103,6 @@ error: Metrics API not available
 $ k top node worker1
 error: Metrics API not available
 ```
-
 
 
 ### Install metrics-server:
@@ -254,12 +253,181 @@ kube-system   kube-dns         ClusterIP   10.255.0.10      <none>        53/UDP
 ```
 
 
-Verify kubectl top works:
+Verify kubectl top works and /metrics raw api call works:
 ```
 $ k top node worker1
 NAME      CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
 worker1   19m          0%       585Mi           7%
+
+$ k get --raw /metrics
+# HELP aggregator_discovery_aggregation_count_total [ALPHA] Counter of number of times discovery was aggregated
+# TYPE aggregator_discovery_aggregation_count_total counter
+aggregator_discovery_aggregation_count_total 274
+# HELP aggregator_unavailable_apiservice [ALPHA] Gauge of APIServices which are marked as unavailable broken down by APIService name.
+# TYPE aggregator_unavailable_apiservice gauge
+aggregator_unavailable_apiservice{name="v1."} 0
+aggregator_unavailable_apiservice{name="v1.admissionregistration.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apiextensions.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.apps"} 0
+aggregator_unavailable_apiservice{name="v1.authentication.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.authorization.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.autoscaling"} 0
+aggregator_unavailable_apiservice{name="v1.batch"} 0
+aggregator_unavailable_apiservice{name="v1.certificates.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.coordination.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.discovery.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.events.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.flowcontrol.apiserver.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.networking.istio.io"} 0
+aggregator_unavailable_apiservice{name="v1.networking.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.node.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.policy"} 0
+aggregator_unavailable_apiservice{name="v1.rbac.authorization.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.scheduling.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.security.istio.io"} 0
+aggregator_unavailable_apiservice{name="v1.storage.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1.telemetry.istio.io"} 0
+aggregator_unavailable_apiservice{name="v1alpha1.extensions.istio.io"} 0
+aggregator_unavailable_apiservice{name="v1alpha1.kiali.io"} 0
+aggregator_unavailable_apiservice{name="v1alpha1.telemetry.istio.io"} 0
+aggregator_unavailable_apiservice{name="v1alpha3.networking.istio.io"} 0
+aggregator_unavailable_apiservice{name="v1beta1.metrics.k8s.io"} 0
+aggregator_unavailable_apiservice{name="v1beta1.networking.istio.io"} 0
+aggregator_unavailable_apiservice{name="v1beta1.security.istio.io"} 0
+aggregator_unavailable_apiservice{name="v2.autoscaling"} 0
+# HELP apiextensions_apiserver_validation_ratcheting_seconds [ALPHA] Time for comparison of old to new for the purposes of CRDValidationRatcheting during an UPDATE in seconds.
+# TYPE apiextensions_apiserver_validation_ratcheting_seconds histogram
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="1e-05"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="4e-05"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.00016"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.00064"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.00256"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.01024"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.04096"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.16384"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="0.65536"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="2.62144"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_bucket{le="+Inf"} 1
+apiextensions_apiserver_validation_ratcheting_seconds_sum 0
+apiextensions_apiserver_validation_ratcheting_seconds_count 1
+# HELP apiextensions_openapi_v2_regeneration_count [ALPHA] Counter of OpenAPI v2 spec regeneration count broken down by causing CRD name and reason.
+# TYPE apiextensions_openapi_v2_regeneration_count counter
+apiextensions_openapi_v2_regeneration_count{crd="authorizationpolicies.security.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="destinationrules.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="envoyfilters.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="gateways.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="kialis.kiali.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="peerauthentications.security.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="proxyconfigs.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="requestauthentications.security.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="serviceentries.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="sidecars.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="telemetries.telemetry.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="virtualservices.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="wasmplugins.extensions.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="workloadentries.networking.istio.io",reason="update"} 0
+apiextensions_openapi_v2_regeneration_count{crd="workloadgroups.networking.istio.io",reason="remove"} 0
+apiextensions_openapi_v2_regeneration_count{crd="workloadgroups.networking.istio.io",reason="update"} 0
+# HELP apiextensions_openapi_v3_regeneration_count [ALPHA] Counter of OpenAPI v3 spec regeneration count broken down by group, version, causing CRD and reason.
+# TYPE apiextensions_openapi_v3_regeneration_count counter
+apiextensions_openapi_v3_regeneration_count{crd="authorizationpolicies.security.istio.io",group="security.istio.io",reason="add",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="authorizationpolicies.security.istio.io",group="security.istio.io",reason="add",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="destinationrules.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="destinationrules.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="destinationrules.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="envoyfilters.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="gateways.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="gateways.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="gateways.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="kialis.kiali.io",group="kiali.io",reason="add",version="v1alpha1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="peerauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="peerauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="proxyconfigs.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="requestauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="requestauthentications.security.istio.io",group="security.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="serviceentries.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="serviceentries.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="serviceentries.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="sidecars.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="sidecars.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="sidecars.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="telemetries.telemetry.istio.io",group="telemetry.istio.io",reason="add",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="telemetries.telemetry.istio.io",group="telemetry.istio.io",reason="add",version="v1alpha1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="virtualservices.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="virtualservices.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="virtualservices.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="wasmplugins.extensions.istio.io",group="extensions.istio.io",reason="add",version="v1alpha1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadentries.networking.istio.io",group="networking.istio.io",reason="add",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadentries.networking.istio.io",group="networking.istio.io",reason="add",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadentries.networking.istio.io",group="networking.istio.io",reason="add",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="remove",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="remove",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="remove",version="v1beta1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="update",version="v1"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="update",version="v1alpha3"} 0
+apiextensions_openapi_v3_regeneration_count{crd="workloadgroups.networking.istio.io",group="networking.istio.io",reason="update",version="v1beta1"} 0
+# HELP apiserver_longrunning_requests [STABLE] Gauge of all active long-running apiserver requests broken out by verb, group, version, resource, scope and component. Not all requests are tracked this way.
+# TYPE apiserver_longrunning_requests gauge
+apiserver_longrunning_requests{component="apiserver",group="",resource="configmaps",scope="cluster",subresource="",verb="WATCH",version="v1"} 1
+apiserver_longrunning_requests{component="apiserver",group="",resource="configmaps",scope="namespace",subresource="",verb="WATCH",version="v1"} 1
+apiserver_longrunning_requests{component="apiserver",group="",resource="configmaps",scope="resource",subresource="",verb="WATCH",version="v1"} 25
+apiserver_longrunning_requests{component="apiserver",group="",resource="endpoints",scope="cluster",subresource="",verb="WATCH",version="v1"} 2
 ```
+
+Note: docs state that right now kubelet is exposing metric unsecurely: https://github.com/kubernetes-sigs/metrics-server/blob/master/FAQ.md#how-to-run-metrics-server-securely
+
+However get "401 Unauthorized" when trying metrics without auth, so maybe its ok:
+```
+$ curl -v -k https://158.160.61.136:10250/metrics/resource
+*   Trying 158.160.61.136:10250...
+* ALPN: curl offers h2,http/1.1
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (IN), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Request CERT (13):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (OUT), TLS handshake, Certificate (11):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_128_GCM_SHA256 / x25519 / RSASSA-PSS
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: CN=master@1737876213
+*  start date: Jan 26 06:23:33 2025 GMT
+*  expire date: Jan 26 06:23:33 2026 GMT
+*  issuer: CN=master-ca@1737876213
+*  SSL certificate verify result: self-signed certificate in certificate chain (19), continuing anyway.
+*   Certificate level 0: Public key type RSA (2048/112 Bits/secBits), signed using sha256WithRSAEncryption
+*   Certificate level 1: Public key type RSA (2048/112 Bits/secBits), signed using sha256WithRSAEncryption
+* Connected to 158.160.61.136 (158.160.61.136) port 10250
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://158.160.61.136:10250/metrics/resource
+* [HTTP/2] [1] [:method: GET]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: 158.160.61.136:10250]
+* [HTTP/2] [1] [:path: /metrics/resource]
+* [HTTP/2] [1] [user-agent: curl/8.12.1]
+* [HTTP/2] [1] [accept: */*]
+> GET /metrics/resource HTTP/2
+> Host: 158.160.61.136:10250
+> User-Agent: curl/8.12.1
+> Accept: */*
+> 
+* Request completely sent off
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+< HTTP/2 401 
+< content-type: text/plain; charset=utf-8
+< content-length: 12
+< date: Sun, 23 Mar 2025 07:08:45 GMT
+< 
+* Connection #0 to host 158.160.61.136 left intact
+Unauthorized%
+```
+
+
 
 ### Try /metrics access from pod using "default" Service Account
 
@@ -315,10 +483,31 @@ root@http-server-5c4c6474b5-2jf8g:~# find /var/run/
 /var/run/secrets/kubernetes.io/serviceaccount/..2025_03_23_05_39_03.2040266637/token
 /var/run/adduser
 
+$ curl -k --header "Authorization: Bearer $token" https://metrics-server.default/metrics
 ```
 
 
-# create service account
+Check using auth can-i:
+```
+$ k auth whoami
+ATTRIBUTE                                           VALUE
+Username                                            kubernetes-admin
+Groups                                              [kubeadm:cluster-admins system:authenticated]
+Extra: authentication.kubernetes.io/credential-id   [X509SHA256=8979e3d39e1d81acc4258cf55cea1933d20d32a0f05df627d7a4edfc04cfb345]
+
+$ kubectl auth can-i get /metrics
+yes
+
+$ kubectl auth can-i get /metrics --as=kubernetes-admin --as-group=system:masters 
+yes
+
+$ kubectl auth can-i get /metrics --as=system:serviceaccount:default:default
+no
+```
+
+
+# Service account with kube-api-server /metrics endpoint access
+
 
 ```
 $ k apply -f sa-monitoring.yaml 
