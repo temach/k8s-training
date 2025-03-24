@@ -1,4 +1,4 @@
-# Examine constraints: Node/Pod Affinity/Anti-Affinity, TopologySpreadConstraints
+# Examine constraints: Node/Pod Affinity/Anti-Affinity, TopologySpreadConstraints, Taints/Tolerations
 
 ### Node/Pod Affinity/Anti-Affinity, 
 
@@ -599,6 +599,8 @@ spec:
     name: kubeconfig
 status: {}
 ```
+
+### Verify new scheduler
 
 Deploy a pod using the new scheduler:
 ```
