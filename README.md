@@ -64,6 +64,8 @@ PolicyRule:
              [/readyz]          []              [get]
 ```
 
+Kube api-server exposes a subset of metrics described here: https://kubernetes.io/docs/reference/instrumentation/metrics/
+
 Check /metrics raw api call works for admin:
 ```
 $ k get --raw /metrics
@@ -867,7 +869,6 @@ PolicyRule:
   Resources  Non-Resource URLs  Resource Names  Verbs
   ---------  -----------------  --------------  -----
              [/metrics]         []              [get]
-
 ```
 
 
@@ -875,7 +876,7 @@ PolicyRule:
 
 Initially confused /metrics api with metrics.k8s.io api group that provides resource monitoring for Horizontal / Vertical pod autoscalers. 
 
-Below are instructions regarding its install.
+Below are instructions regarding installation of metrics-server.
 
 ### About metrics.k8s.io api
 
@@ -883,9 +884,7 @@ Metrics pipeline overview: https://kubernetes.io/docs/tasks/debug/debug-cluster/
 
 Metrics server implementation to provide `metrics.k8s.io` api: https://github.com/kubernetes-sigs/metrics-server
 
-Metrics format exposed by metrics-server: https://kubernetes.io/docs/reference/instrumentation/metrics/
-
-See also: https://kubernetes.io/docs/reference/external-api/metrics.v1beta1/
+Metrics format exposed by metrics-server: https://kubernetes.io/docs/reference/external-api/metrics.v1beta1/
 
 
 Check if metrics api is already installed:
@@ -1327,4 +1326,7 @@ root@http-server-5c4c6474b5-2jf8g:~# curl -k --header "Authorization: Bearer $TO
   "details": {},
   "code": 403
 ```
+
+Note: the curl path: https://metrics-server.default/metrics is wrong, it should be something like /nodes/worker1 but will fix later.
+
 
