@@ -1,0 +1,34 @@
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: unix:///var/run/cri-dockerd.sock
+localAPIEndpoint:
+  advertiseAddress: 10.128.0.16
+
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+kubernetesVersion: v1.32.1
+networking:
+  podSubnet: "10.244.0.0/16" # --pod-network-cidr apparently special value for flannel
+  serviceSubnet: "10.255.0.0/16"
+scheduler:
+  extraArgs:
+    - name: config
+      value: "/etc/kubernetes/kube-scheduler-custom.conf"
+  extraVolumes:
+    - name: "kube-scheduler-custom-conf"
+      hostPath: "/etc/kubernetes/kube-scheduler-custom.conf"
+      mountPath: "/etc/kubernetes/kube-scheduler-custom.conf"
+      readOnly: true
+      pathType: File
+
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: nftables

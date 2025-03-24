@@ -1,7 +1,14 @@
-# k8s-training
 
 
-# Add kube scheduler configuration file
+
+
+
+
+
+
+
+
+# Extra: Add custom kube scheduler configuration file that favours ImageLocallity
 
 ### View current kube-scheduler configuration
 
