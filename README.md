@@ -10,6 +10,58 @@ PolicyRule:
   Resources   Non-Resource URLs  Resource Names    Verbs
   ---------   -----------------  --------------    -----
   configmaps  []                 [kubeadm-config]  [get]
+
+```
+
+
+Only clusterroles can acces Non-Resource URLs, here are pre-installed clusterroles and their urls:
+```
+$ k describe clusterroles 
+...
+
+Name:         system:discovery
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+             [/api/*]           []              [get]
+             [/api]             []              [get]
+             [/apis/*]          []              [get]
+             [/apis]            []              [get]
+             [/healthz]         []              [get]
+             [/livez]           []              [get]
+             [/openapi/*]       []              [get]
+             [/openapi]         []              [get]
+             [/readyz]          []              [get]
+             [/version/]        []              [get]
+             [/version]         []              [get]
+
+Name:         system:service-account-issuer-discovery
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+PolicyRule:
+  Resources  Non-Resource URLs                     Resource Names  Verbs
+  ---------  -----------------                     --------------  -----
+             [/.well-known/openid-configuration/]  []              [get]
+             [/.well-known/openid-configuration]   []              [get]
+             [/openid/v1/jwks/]                    []              [get]
+             [/openid/v1/jwks]                     []              [get]
+
+Name:         system:monitoring
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+             [/healthz/*]       []              [get]
+             [/healthz]         []              [get]
+             [/livez/*]         []              [get]
+             [/livez]           []              [get]
+             [/metrics/slis]    []              [get]
+             [/metrics]         []              [get]
+             [/readyz/*]        []              [get]
+             [/readyz]          []              [get]
 ```
 
 Check /metrics raw api call works for admin:
@@ -787,6 +839,35 @@ Extra: authentication.kubernetes.io/credential-id   [JTI=e4c9d84c-7b97-431b-ac41
 To check without creating kubeconfig, see https://kubernetes.io/docs/reference/access-authn-authz/authentication/#option-2-use-the-token-option:
 ```
 $ kubectl --token=eyJhbGciOiJSUzI1NiIsImtpZCI6Imp5R0QtQVNsNDE0V1hqR3RoM2lWMl9xNEtmZktfdHRZWEFnM191eVpvNnMifQ...tQ get nodes
+```
+
+At this point it turned out that kubernetes already has a default monitoring cluster role (in addition to the one created by hand):
+```
+$ k describe clusterroles 
+...
+Name:         system:monitoring
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+             [/healthz/*]       []              [get]
+             [/healthz]         []              [get]
+             [/livez/*]         []              [get]
+             [/livez]           []              [get]
+             [/metrics/slis]    []              [get]
+             [/metrics]         []              [get]
+             [/readyz/*]        []              [get]
+             [/readyz]          []              [get]
+
+Name:         view-api-server-metrics
+Labels:       <none>
+Annotations:  <none>
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+             [/metrics]         []              [get]
+
 ```
 
 
