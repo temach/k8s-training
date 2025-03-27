@@ -69,6 +69,8 @@ releases:
           enabled: false
         prometheus-pushgateway:
           enabled: false
+        kube-state-metrics:
+          enabled: false
         server:
           extraFlags:
             - web.enable-lifecycle
