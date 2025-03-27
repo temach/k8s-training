@@ -24,6 +24,9 @@ releases:
     version: "0.119.0" 
     values:
       - mode: "daemonset"
+        tolerations: 
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
         image:
           # must select one of these: https://github.com/orgs/open-telemetry/packages?repo_name=opentelemetry-collector-releases
           # see collector flavours: https://github.com/open-telemetry/opentelemetry-collector-releases
