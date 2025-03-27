@@ -1,0 +1,64 @@
+#
+# helmfile docs: https://helmfile.readthedocs.io/en/latest/
+# when uninstalling chart, must manually delete pvc/pv
+#
+# add repo:         helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# find charts:      helm search repo prometheus-community
+# get values.yaml:  helm pull prometheus-community/prometheus
+
+
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
+
+helmDefaults:
+  # automatically create release namespaces if they do not exist
+  createNamespace: true
+
+releases:
+  - name: otel-collector
+    namespace: otel
+    chart: open-telemetry/opentelemetry-collector
+    version: "0.119.0" 
+    values:
+      - mode: "daemonset"
+        image:
+          # must select one of these: https://github.com/orgs/open-telemetry/packages?repo_name=opentelemetry-collector-releases
+          # see collector flavours: https://github.com/open-telemetry/opentelemetry-collector-releases
+          repository: "otel/opentelemetry-collector-contrib" 
+
+  - name: prometheus
+    namespace: prometheus
+    chart: prometheus-community/prometheus
+    version: "27.5.1" 
+    values:
+      - alertmanager:
+          enabled: false
+
+        prometheus-pushgateway:
+          enabled: false
+
+        server:
+          extraFlags:
+            - web.enable-lifecycle
+            ## web.enable-admin-api flag controls access to the administrative HTTP API which includes functionality such as
+            ## deleting time series. This is disabled by default.
+            - web.enable-admin-api
+
+          persistentVolume:
+            ## If true, Prometheus server will create/use a Persistent Volume Claim
+            ## If false, use emptyDir
+            enabled: true
+
+            ## Prometheus server data Persistent Volume size
+            size: 8Gi
+
+          ## Prometheus data retention period (default if not specified is 15 days)
+          retention: "15d"
+
+          ## Prometheus' data retention size. Supported units: B, KB, MB, GB, TB, PB, EB.
+          retentionSize: "7GB"
+
+
