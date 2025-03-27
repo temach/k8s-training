@@ -1327,3 +1327,178 @@ worker3   Ready    <none>          4d17h   v1.32.1
 And now its possible to port-forward remote services to local machine.
 
 
+# Extra: configure TLS in cluster
+
+I supplied cert info in kubelet join command, however this is not the end of certificate setup.
+It seems that kubelet certs are not fully configured as e.g. metrics-server and otel collector encounter errors like the following when trying to scrape kubelet port 10250 metrics:
+```
+2025-03-27T16:34:08.366Z	error	scraperhelper@v0.121.0/obs_metrics.go:61	Error scraping metrics	{"otelcol.component.id": "kubeletstats", "otelcol.component.kind": "Receiver", "otelcol.signal": "metrics", "error": "Get \"https://10.128.0.25:10250/stats/summary\": tls: failed to verify certificate: x509: cannot validate certificate for 10.128.0.25 because it doesn't contain any IP SANs"}
+```
+
+The error is specifically about SAN = X509v3 Subject Alternative Name
+
+Start by examining certificates on master node, first the certificate for cluster and the certificate for kubelet running on master:
+```
+oot@master:~# ls -la /etc/kubernetes/pki
+total 68
+drwxr-xr-x 3 root root 4096 Jan 26 07:23 .
+drwxrwxr-x 5 root root 4096 Feb 25 20:57 ..
+-rw-r--r-- 1 root root 1281 Jan 26 23:48 apiserver.crt
+-rw-r--r-- 1 root root 1123 Jan 26 23:48 apiserver-etcd-client.crt
+-rw------- 1 root root 1675 Jan 26 23:48 apiserver-etcd-client.key
+-rw------- 1 root root 1675 Jan 26 23:48 apiserver.key
+-rw-r--r-- 1 root root 1176 Jan 26 23:48 apiserver-kubelet-client.crt
+-rw------- 1 root root 1679 Jan 26 23:48 apiserver-kubelet-client.key
+-rw-r--r-- 1 root root 1107 Jan 26 07:23 ca.crt
+-rw------- 1 root root 1679 Jan 26 07:23 ca.key
+drwxr-xr-x 2 root root 4096 Jan 26 07:23 etcd
+-rw-r--r-- 1 root root 1123 Jan 26 07:23 front-proxy-ca.crt
+-rw------- 1 root root 1679 Jan 26 07:23 front-proxy-ca.key
+-rw-r--r-- 1 root root 1119 Jan 26 23:48 front-proxy-client.crt
+-rw------- 1 root root 1679 Jan 26 23:48 front-proxy-client.key
+-rw------- 1 root root 1679 Jan 26 07:23 sa.key
+-rw------- 1 root root  451 Jan 26 07:23 sa.pub
+
+root@master:~# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 4380387176016264521 (0x3cca42eda5203d49)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = kubernetes
+        Validity
+            Not Before: Jan 26 23:39:35 2025 GMT
+            Not After : Jan 26 23:44:35 2026 GMT
+        Subject: CN = kube-apiserver
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:b5:70:fc:b4:b9:7f:31:81:0d:e5:83:e9:71:b6:
+                    ...
+                    db:cf:1e:3a:4a:26:7e:3a:32:00:67:23:2d:ff:e1:
+                    ee:9b:bd:e0:a0:17:d0:3d:96:9d:14:d0:30:f4:9c:
+                    20:79:54:a7:31:ea:18:f1:a7:e5:ba:5f:55:93:4c:
+                    3e:4f
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Authority Key Identifier: 
+                A8:9C:D9:52:58:C7:51:03:69:0B:FD:72:19:C6:AC:0D:F8:FF:81:EE
+            X509v3 Subject Alternative Name: 
+                DNS:kubernetes, DNS:kubernetes.default, DNS:kubernetes.default.svc, DNS:kubernetes.default.svc.cluster.local, DNS:master, IP Address:10.255.0.1, IP Address:10.128.0.16
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        50:50:6d:e8:ae:63:7f:a1:42:c5:a3:58:a2:53:d8:60:23:b7:
+        ...
+        db:cf:1e:3a:4a:26:7e:3a:32:00:67:23:2d:ff:e1:
+        ee:9b:bd:e0:a0:17:d0:3d:96:9d:14:d0:30:f4:9c:
+        3a:ad:b8:61
+
+
+root@master:~# ls -l /var/lib/kubelet/pki
+total 12
+-rw------- 1 root root 2822 Jan 26 07:23 kubelet-client-2025-01-26-07-23-33.pem
+lrwxrwxrwx 1 root root   59 Jan 26 07:23 kubelet-client-current.pem -> /var/lib/kubelet/pki/kubelet-client-2025-01-26-07-23-33.pem
+-rw-r--r-- 1 root root 2254 Jan 26 07:23 kubelet.crt
+-rw------- 1 root root 1679 Jan 26 07:23 kubelet.key
+
+root@master:~# openssl x509 -in /var/lib/kubelet/pki/kubelet.crt -text -noout
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 3798245667035869957 (0x34b6144f6956f305)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = master-ca@1737876213
+        Validity
+            Not Before: Jan 26 06:23:33 2025 GMT
+            Not After : Jan 26 06:23:33 2026 GMT
+        Subject: CN = master@1737876213
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:eb:8b:ec:11:96:ce:ad:ab:44:24:60:ea:76:e3:
+                    f9:4a:e8:b9:67:78:8a:8f:82:07:3b:70:e9:cf:60:
+                    ...
+                    7e:eb:33:72:2c:85:9c:d9:90:4f:a5:2d:87:79:23:
+                    69:66:e2:0e:d4:32:d0:88:41:46:28:3d:3c:55:f4:
+                    c8:a3
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Authority Key Identifier: 
+                E9:1F:24:46:9B:D4:35:8C:8A:C7:C2:4B:FD:17:63:E7:40:5C:E0:C3
+            X509v3 Subject Alternative Name: 
+                DNS:master
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        ab:a6:9f:24:1e:8b:b0:27:18:6d:ba:aa:51:9e:ee:1c:57:68:
+        ...
+        cc:1d:fa:f8:29:a4:be:a1:28:d0:bf:fe:42:85:36:18:af:d6:
+        86:7a:fd:36
+```
+
+
+Lets checkout the worker1 certificate:
+
+```
+root@worker1:/# ls -la /etc/kubernetes/pki
+total 12
+drwxr-xr-x 2 root root 4096 Jan 26 20:55 .
+drwxrwxr-x 5 root root 4096 Jan 27 00:02 ..
+-rw-r--r-- 1 root root 1107 Jan 26 20:55 ca.crt
+
+root@worker1:/# openssl x509 -in /etc/kubernetes/pki/ca.crt -text -noout
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 8597161340887333357 (0x774f40b0984f79ed)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = kubernetes
+        Validity
+            Not Before: Jan 26 07:17:52 2025 GMT
+            Not After : Jan 24 07:22:52 2035 GMT
+        Subject: CN = kubernetes
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:e4:2d:a1:7a:13:99:e0:3c:c9:17:48:33:9f:a4:
+                    22:31:25:26:1e:11:af:65:4f:a4:cd:36:d6:bd:af:
+                    d6:05:9e:43:ab:c4:a1:57:7f:c7:fd:38:8a:a8:14:
+                    ...
+                    2f:0a:c4:b6:b4:f7:a9:99:13:e7:90:1c:a2:93:19:
+                    04:5c:ad:45:2e:5c:fd:22:d3:8a:d1:78:50:6d:ed:
+                    f7:3b
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment, Certificate Sign
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+            X509v3 Subject Key Identifier: 
+                A8:9C:D9:52:58:C7:51:03:69:0B:FD:72:19:C6:AC:0D:F8:FF:81:EE
+            X509v3 Subject Alternative Name: 
+                DNS:kubernetes
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        79:70:60:84:5d:b3:fe:db:d9:77:6f:65:cf:7d:4b:16:fd:fb:
+        b2:41:31:1e:ff:67:64:4d:ac:de:f3:cd:ca:ab:b9:1d:9c:b5:
+        49:59:89:be:32:3c:e7:3e:57:1f:2a:ce:b9:fb:14:37:30:40:
+        ...
+        22:e3:2c:60:58:b6:5a:87:0d:20:46:67:74:62:0e:5d:63:b0:
+        98:08:5d:49
+```
+
+
