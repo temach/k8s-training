@@ -12,17 +12,25 @@ A good choice: Jaeger, FluentBit + Opensearch, Prometheus, Grafana
 
 Github repo: https://github.com/open-telemetry/opentelemetry-collector
 
-Helm charts: https://opentelemetry.io/docs/platforms/kubernetes/helm/
+Helm charts (including Demo) https://opentelemetry.io/docs/platforms/kubernetes/helm/ and
+install guide https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#installing-the-chart
 
-Different flavours of collector: https://github.com/open-telemetry/opentelemetry-collector-releases
+
+Different flavours of collector: see https://github.com/open-telemetry/opentelemetry-collector-releases and https://github.com/orgs/open-telemetry/packages?repo_name=opentelemetry-collector-releases
+
 - The fat flavour with everything is https://github.com/open-telemetry/opentelemetry-collector-releases/tree/main/distributions/otelcol-contrib
+  image.repository="otel/opentelemetry-collector-contrib"
+
 - The flavour for k8s is https://github.com/open-telemetry/opentelemetry-collector-releases/tree/main/distributions/otelcol-k8s
+  image.repository="otel/opentelemetry-collector-k8s"
+
 - The super-minimalist flavour is https://github.com/open-telemetry/opentelemetry-collector-releases/tree/main/distributions/otelcol-otlp
+  image.repository="otel/opentelemetry-collector-contrib"
+
+- Lastly is the classic older image: image.repository="otel/opentelemetry-collector"
 
 
 ```
-# helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
-# helm repo
-
+# helmfile apply
 
 ```
