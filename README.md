@@ -18,7 +18,9 @@ Take helmfile from kubernetes-istio branch, it has already been done.
 ### Install OpenTelemetry Collector
 
 Strictly speaking collector is not necessary, metrics/logs/traces can be send directly to the backend,
-but collector is nice and it can aggreagate logs (like fluentd).
+but collector is nice and it can aggreagate logs (like fluentd) and it can both scrape metrics and receive pushed metrics (instead of prometheus).
+
+Run in daemonset mode, because that allows to collect logs, add toleration to run on control-plane nodes.
 
 Github repo: https://github.com/open-telemetry/opentelemetry-collector
 
@@ -38,6 +40,7 @@ Different flavours of collector: see https://github.com/open-telemetry/opentelem
   image.repository="otel/opentelemetry-collector-contrib"
 
 - Lastly is the classic older image: image.repository="otel/opentelemetry-collector"
+
 
 
 ```
@@ -98,4 +101,34 @@ UPDATED RELEASES:
 NAME             NAMESPACE    CHART                                    VERSION   DURATION
 otel-collector   otel         open-telemetry/opentelemetry-collector   0.119.0         2s
 prometheus       prometheus   prometheus-community/prometheus          27.5.1          3s
+
+
+$ k get pods -A -o wide
+NAMESPACE      NAME                                                 READY   STATUS    RESTARTS       AGE   IP             NODE      NOMINATED NODE   READINESS GATES
+default        http-server-568587b657-xb76p                         1/1     Running   0              20m   10.244.1.193   worker1   <none>           <none>
+kube-flannel   kube-flannel-ds-hjwfh                                1/1     Running   14 (30m ago)   10d   10.128.0.16    master    <none>           <none>
+kube-flannel   kube-flannel-ds-q2gl4                                1/1     Running   28 (30m ago)   10d   10.128.0.26    worker2   <none>           <none>
+kube-flannel   kube-flannel-ds-sq6s7                                1/1     Running   15 (32m ago)   10d   10.128.0.3     worker3   <none>           <none>
+kube-flannel   kube-flannel-ds-sx6qk                                1/1     Running   14 (30m ago)   10d   10.128.0.25    worker1   <none>           <none>
+kube-system    coredns-7c65d6cfc9-9fv2f                             1/1     Running   1 (32m ago)    11h   10.244.1.188   worker1   <none>           <none>
+kube-system    coredns-7c65d6cfc9-pk4xt                             1/1     Running   20 (31m ago)   29d   10.244.0.33    master    <none>           <none>
+kube-system    etcd-master                                          1/1     Running   26 (31m ago)   59d   10.128.0.16    master    <none>           <none>
+kube-system    kube-apiserver-master                                1/1     Running   26 (31m ago)   59d   10.128.0.16    master    <none>           <none>
+kube-system    kube-controller-manager-master                       1/1     Running   28 (70s ago)   59d   10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-bp57z                                     1/1     Running   13 (32m ago)   13d   10.128.0.25    worker1   <none>           <none>
+kube-system    kube-proxy-hkklk                                     1/1     Running   12 (31m ago)   13d   10.128.0.16    master    <none>           <none>
+kube-system    kube-proxy-x4qcl                                     1/1     Running   9 (32m ago)    10d   10.128.0.26    worker2   <none>           <none>
+kube-system    kube-proxy-z5ztj                                     1/1     Running   10 (32m ago)   10d   10.128.0.3     worker3   <none>           <none>
+kube-system    kube-scheduler-master                                1/1     Running   23 (65s ago)   29d   10.128.0.16    master    <none>           <none>
+otel           otel-collector-opentelemetry-collector-agent-2zjcs   1/1     Running   0              39s   10.244.3.54    worker3   <none>           <none>
+otel           otel-collector-opentelemetry-collector-agent-58t2r   1/1     Running   0              41s   10.244.1.194   worker1   <none>           <none>
+otel           otel-collector-opentelemetry-collector-agent-crtk5   1/1     Running   0              36s   10.244.2.41    worker2   <none>           <none>
+otel           otel-collector-opentelemetry-collector-agent-hmbk8   1/1     Running   0              94s   10.244.0.34    master    <none>           <none>
+prometheus     prometheus-kube-state-metrics-5bd466f7f6-psfnd       1/1     Running   0              27m   10.244.2.40    worker2   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-5wlvj            1/1     Running   0              27m   10.128.0.26    worker2   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-bgkwv            1/1     Running   0              27m   10.128.0.16    master    <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-dvskq            1/1     Running   0              27m   10.128.0.3     worker3   <none>           <none>
+prometheus     prometheus-prometheus-node-exporter-mtx78            1/1     Running   0              27m   10.128.0.25    worker1   <none>           <none>
+prometheus     prometheus-server-88cb5cb78-gktwj                    2/2     Running   0              27m   10.244.1.192   worker1   <none>           <none>
 ```
+
