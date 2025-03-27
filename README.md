@@ -7,6 +7,8 @@ and docs for the helm chart: https://opentelemetry.io/docs/platforms/kubernetes/
 
 A good choice: Jaeger, FluentBit + Opensearch, Prometheus, Grafana
 
+Registry of library/app integrations with Otel: https://opentelemetry.io/ecosystem/registry/?s=apache
+
 
 ### Install OpenTelemetry Collector
 
