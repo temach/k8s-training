@@ -127,7 +127,6 @@ kube-system    kube-scheduler-master                                1/1     Runn
 otel           otel-collector-opentelemetry-collector-agent-2zjcs   1/1     Running   0              39s   10.244.3.54    worker3   <none>           <none>
 otel           otel-collector-opentelemetry-collector-agent-58t2r   1/1     Running   0              41s   10.244.1.194   worker1   <none>           <none>
 otel           otel-collector-opentelemetry-collector-agent-crtk5   1/1     Running   0              36s   10.244.2.41    worker2   <none>           <none>
-otel           otel-collector-opentelemetry-collector-agent-hmbk8   1/1     Running   0              94s   10.244.0.34    master    <none>           <none>
 prometheus     prometheus-kube-state-metrics-5bd466f7f6-psfnd       1/1     Running   0              27m   10.244.2.40    worker2   <none>           <none>
 prometheus     prometheus-prometheus-node-exporter-5wlvj            1/1     Running   0              27m   10.128.0.26    worker2   <none>           <none>
 prometheus     prometheus-prometheus-node-exporter-bgkwv            1/1     Running   0              27m   10.128.0.16    master    <none>           <none>
@@ -166,11 +165,6 @@ PAGER=less
 LESS=-R
 LSCOLORS=Gxfxcxdxbxegedabagacad
 LS_COLORS=di=1;36:ln=35:so=32:pi=33:ex=31:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43
-P9K_SSH=0
-_P9K_SSH_TTY=/dev/pts/0
-P9K_TTY=old
-_P9K_TTY=/dev/pts/0
-_=/usr/bin/env
 
 otel-collector-opentelemetry-collector-agent-hmbk8  ~  cat /proc/1/root/conf/relay.yaml
 exporters:
@@ -245,98 +239,14 @@ service:
       address: ${env:MY_POD_IP}:8888
 ```
 
-The config is also available via configmap:
+
+
+Update helmfile to disable prometheus-node-exporter and disable non-otel collectors:
 ```
+
+
+
+
 $ k get cm -n otel otel-collector-opentelemetry-collector-agent -o yaml
-apiVersion: v1
-data:
-  relay: |
-    exporters:
-      debug: {}
-    extensions:
-      health_check:
-        endpoint: ${env:MY_POD_IP}:13133
-    processors:
-      batch: {}
-      memory_limiter:
-        check_interval: 5s
-        limit_percentage: 80
-        spike_limit_percentage: 25
-    receivers:
-      jaeger:
-        protocols:
-          grpc:
-            endpoint: ${env:MY_POD_IP}:14250
-          thrift_compact:
-            endpoint: ${env:MY_POD_IP}:6831
-          thrift_http:
-            endpoint: ${env:MY_POD_IP}:14268
-      otlp:
-        protocols:
-          grpc:
-            endpoint: ${env:MY_POD_IP}:4317
-          http:
-            endpoint: ${env:MY_POD_IP}:4318
-      prometheus:
-        config:
-          scrape_configs:
-          - job_name: opentelemetry-collector
-            scrape_interval: 10s
-            static_configs:
-            - targets:
-              - ${env:MY_POD_IP}:8888
-      zipkin:
-        endpoint: ${env:MY_POD_IP}:9411
-    service:
-      extensions:
-      - health_check
-      pipelines:
-        logs:
-          exporters:
-          - debug
-          processors:
-          - memory_limiter
-          - batch
-          receivers:
-          - otlp
-        metrics:
-          exporters:
-          - debug
-          processors:
-          - memory_limiter
-          - batch
-          receivers:
-          - otlp
-          - prometheus
-        traces:
-          exporters:
-          - debug
-          processors:
-          - memory_limiter
-          - batch
-          receivers:
-          - otlp
-          - jaeger
-          - zipkin
-      telemetry:
-        metrics:
-          address: ${env:MY_POD_IP}:8888
-kind: ConfigMap
-metadata:
-  annotations:
-    meta.helm.sh/release-name: otel-collector
-    meta.helm.sh/release-namespace: otel
-  creationTimestamp: "2025-03-27T13:31:01Z"
-  labels:
-    app.kubernetes.io/component: agent-collector
-    app.kubernetes.io/instance: otel-collector
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: opentelemetry-collector
-    app.kubernetes.io/version: 0.121.0
-    helm.sh/chart: opentelemetry-collector-0.119.0
-  name: otel-collector-opentelemetry-collector-agent
-  namespace: otel
-  resourceVersion: "896341"
-  uid: b9a96297-8edc-4371-9c82-b23fe789fea5
 ```
 
