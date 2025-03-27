@@ -240,8 +240,11 @@ service:
 ```
 
 
+Enable otel collector presets https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#presets and redeploy.
 
-Update helmfile to disable prometheus-node-exporter and disable non-otel collectors:
+
+Also disable prometheus-node-exporter and prometheus-kube-state-metrics and disable non-otel collectors:
+
 ```
 # helmfile apply
 Upgrading release=otel-collector, chart=open-telemetry/opentelemetry-collector, namespace=otel
@@ -678,7 +681,7 @@ spec:
 ```
 
 
-Specifically note the otel ports:
+Specifically note that only otel ports are available now:
 ```
     name: opentelemetry-collector
     ports:
