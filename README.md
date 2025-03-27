@@ -695,3 +695,14 @@ Specifically note that only otel ports are available now:
       protocol: TCP
 ```
 
+### Debug otel tls
+
+At this point I noticed errors in otel-collector logs:
+```
+2025-03-27T16:33:52.164Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 1, "metrics": 36, "data points": 59}
+2025-03-27T16:33:58.388Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 6, "metrics": 19, "data points": 91}
+2025-03-27T16:34:02.202Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 1, "metrics": 36, "data points": 59}
+2025-03-27T16:34:08.366Z	error	scraperhelper@v0.121.0/obs_metrics.go:61	Error scraping metrics	{"otelcol.component.id": "kubeletstats", "otelcol.component.kind": "Receiver", "otelcol.signal": "metrics", "error": "Get \"https://10.128.0.25:10250/stats/summary\": tls: failed to verify certificate: x509: cannot validate certificate for 10.128.0.25 because it doesn't contain any IP SANs"}
+```
+
+This error already came up while installing kubernetes metrics-server, and there solution was to disable TLS, but this time, instead lets fix TLS in cluster.
