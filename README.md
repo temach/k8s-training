@@ -1329,6 +1329,11 @@ And now its possible to port-forward remote services to local machine.
 
 # Extra: configure TLS in cluster
 
+Interesting links:
+- https://github.com/k3s-io/k3s/issues/6102#issuecomment-1238922182
+- https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/
+- https://github.com/open-telemetry/opentelemetry-helm-charts/pull/1034#discussion_r1489002563
+
 I supplied cert info in kubelet join command, however this is not the end of certificate setup.
 It seems that kubelet certs are not fully configured as e.g. metrics-server and otel collector encounter errors like the following when trying to scrape kubelet port 10250 metrics:
 ```
@@ -1336,6 +1341,39 @@ It seems that kubelet certs are not fully configured as e.g. metrics-server and 
 ```
 
 The error is specifically about SAN = X509v3 Subject Alternative Name
+
+For reference here is formatted kube-api-server start command (tls args are there!):
+```
+root@master:~# ps axuf | grep api
+root        1305  3.1  5.6 1659212 456976 ?      Ssl  13:26   7:17  \_ kube-apiserver 
+    --advertise-address=10.128.0.16 
+    --allow-privileged=true 
+    --authorization-mode=Node,RBAC 
+    --client-ca-file=/etc/kubernetes/pki/ca.crt 
+    --enable-admission-plugins=NodeRestriction 
+    --enable-bootstrap-token-auth=true 
+    --etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt 
+    --etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt 
+    --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key 
+    --etcd-servers=https://127.0.0.1:2379 
+    --kubelet-client-certificate=/etc/kubernetes/pki/apiserver-kubelet-client.crt 
+    --kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key 
+    --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname 
+    --proxy-client-cert-file=/etc/kubernetes/pki/front-proxy-client.crt 
+    --proxy-client-key-file=/etc/kubernetes/pki/front-proxy-client.key 
+    --requestheader-allowed-names=front-proxy-client 
+    --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt 
+    --requestheader-extra-headers-prefix=X-Remote-Extra- 
+    --requestheader-group-headers=X-Remote-Group 
+    --requestheader-username-headers=X-Remote-User 
+    --secure-port=6443 
+    --service-account-issuer=https://kubernetes.default.svc.cluster.local 
+    --service-account-key-file=/etc/kubernetes/pki/sa.pub 
+    --service-account-signing-key-file=/etc/kubernetes/pki/sa.key 
+    --service-cluster-ip-range=10.255.0.0/16 
+    --tls-cert-file=/etc/kubernetes/pki/apiserver.crt 
+    --tls-private-key-file=/etc/kubernetes/pki/apiserver.key
+```
 
 Start by examining certificates on master node, first the certificate for cluster and the certificate for kubelet running on master:
 ```
@@ -1449,10 +1487,14 @@ Certificate:
         86:7a:fd:36
 ```
 
+Well its clear that the kubelet on master does not have its ip address in SANs list (unlike the kubernetes admin server certificate above).
+Most likely the same is true on worker nodes.
+Hence requests to "https://10.128.0.25:10250/stats/summary" do not pass TLS.
 
-Lets checkout the worker1 certificate:
 
+Lets checkout the worker1 certificates for cluster server and for worker kubelet:
 ```
+
 root@worker1:/# ls -la /etc/kubernetes/pki
 total 12
 drwxr-xr-x 2 root root 4096 Jan 26 20:55 .
@@ -1499,6 +1541,687 @@ Certificate:
         ...
         22:e3:2c:60:58:b6:5a:87:0d:20:46:67:74:62:0e:5d:63:b0:
         98:08:5d:49
+
+
+root@worker1:/var/lib/kubelet/pki# ls -la
+total 20
+drwxr-xr-x 2 root root 4096 Jan 26 20:55 .
+drwxrwxr-x 9 root root 4096 Jan 27 00:03 ..
+-rw------- 1 root root 1110 Jan 26 20:55 kubelet-client-2025-01-26-20-55-16.pem
+lrwxrwxrwx 1 root root   59 Jan 26 20:55 kubelet-client-current.pem -> /var/lib/kubelet/pki/kubelet-client-2025-01-26-20-55-16.pem
+-rw-r--r-- 1 root root 2262 Jan 26 20:55 kubelet.crt
+-rw------- 1 root root 1675 Jan 26 20:55 kubelet.key
+
+root@worker1:/var/lib/kubelet/pki# openssl x509 -in /var/lib/kubelet/pki/kubelet.crt -text -noout
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 7205592585443665118 (0x63ff6847938ee4de)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = worker1-ca@1737924916
+        Validity
+            Not Before: Jan 26 19:55:16 2025 GMT
+            Not After : Jan 26 19:55:16 2026 GMT
+        Subject: CN = worker1@1737924916
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:d0:51:91:63:a5:12:eb:d5:98:62:b7:2f:96:bd:
+                    ...
+                    b8:42:e7:1f:e1:2f:5a:51:29:36:44:20:b3:ab:6a:
+                    13:19:aa:bb:95:10:f9:43:ab:d6:04:dc:84:98:bb:
+                    49:49
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature, Key Encipherment
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Authority Key Identifier: 
+                5F:04:EC:64:02:88:3C:B1:86:AA:6D:BB:68:91:15:CF:ED:AC:4C:C6
+            X509v3 Subject Alternative Name: 
+                DNS:worker1
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        2f:ec:c7:38:25:a5:a4:22:48:6e:2b:3a:73:cd:82:52:29:da:
+        17:04:eb:11:f0:a5:5a:2c:43:4e:e1:d8:fb:31:4f:5d:58:61:
+        ...
+        12:05:e6:fd:22:6a:d0:0e:7a:4e:15:a6:c1:c3:09:e0:7a:b4:
+        fb:fa:0c:45
 ```
 
 
+Also look at cert that kubelet uses to authenticate TO the api server:
+```
+root@worker1:/# openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            bd:fa:c4:35:ac:1b:06:58:f2:ba:d8:1b:ae:3c:c8:c7
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = kubernetes
+        Validity
+            Not Before: Jan 26 20:50:16 2025 GMT
+            Not After : Jan 26 20:50:16 2026 GMT
+        Subject: O = system:nodes, CN = system:node:worker1
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub:
+                    04:4d:2c:74:90:0d:9f:69:1c:53:9a:54:62:46:16:
+                    32:de:fc:12:3f:1e:dd:a6:0a:fd:80:61:d2:7a:e5:
+                    79:c5:e7:fe:77:59:a0:34:d2:fd:f1:74:09:09:e6:
+                    b0:b6:3e:93:5c:29:b9:aa:3d:52:35:b7:db:9f:75:
+                    e3:f5:25:e2:a3
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Authority Key Identifier: 
+                A8:9C:D9:52:58:C7:51:03:69:0B:FD:72:19:C6:AC:0D:F8:FF:81:EE
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        6e:df:d0:c4:d7:0c:d6:3d:b9:32:d9:ee:a6:fd:0c:10:94:d0:
+        ...
+        31:e3:50:ce:c9:48:83:2c:fc:56:98:bb:ba:49:e4:2e:22:3c:
+```
+
+Can checkout worker1 node kubelet config via api:
+```
+$ kubectl get --raw "/api/v1/nodes/worker1/proxy/configz" | jq
+{
+  "kubeletconfig": {
+    "enableServer": true,
+    "staticPodPath": "/etc/kubernetes/manifests",
+    "podLogsDir": "/var/log/pods",
+    "syncFrequency": "1m0s",
+    "fileCheckFrequency": "20s",
+    "httpCheckFrequency": "20s",
+    "address": "0.0.0.0",
+    "port": 10250,
+    "tlsCertFile": "/var/lib/kubelet/pki/kubelet.crt",
+    "tlsPrivateKeyFile": "/var/lib/kubelet/pki/kubelet.key",
+    "rotateCertificates": true,
+    "authentication": {
+      "x509": {
+        "clientCAFile": "/etc/kubernetes/pki/ca.crt"
+      },
+      "webhook": {
+        "enabled": true,
+        "cacheTTL": "2m0s"
+      },
+      "anonymous": {
+        "enabled": false
+      }
+    },
+    "authorization": {
+      "mode": "Webhook",
+      "webhook": {
+        "cacheAuthorizedTTL": "5m0s",
+        "cacheUnauthorizedTTL": "30s"
+      }
+    },
+    "registryPullQPS": 5,
+    "registryBurst": 10,
+    "eventRecordQPS": 50,
+    "eventBurst": 100,
+    "enableDebuggingHandlers": true,
+    "healthzPort": 10248,
+    "healthzBindAddress": "127.0.0.1",
+    "oomScoreAdj": -999,
+    "clusterDomain": "cluster.local",
+    "clusterDNS": [
+      "10.255.0.10"
+    ],
+    "streamingConnectionIdleTimeout": "4h0m0s",
+    "nodeStatusUpdateFrequency": "10s",
+    "nodeStatusReportFrequency": "5m0s",
+    "nodeLeaseDurationSeconds": 40,
+    "imageMinimumGCAge": "2m0s",
+    "imageMaximumGCAge": "0s",
+    "imageGCHighThresholdPercent": 85,
+    "imageGCLowThresholdPercent": 80,
+    "volumeStatsAggPeriod": "1m0s",
+    "cgroupsPerQOS": true,
+    "cgroupDriver": "systemd",
+    "cpuManagerPolicy": "none",
+    "cpuManagerReconcilePeriod": "10s",
+    "memoryManagerPolicy": "None",
+    "topologyManagerPolicy": "none",
+    "topologyManagerScope": "container",
+    "runtimeRequestTimeout": "2m0s",
+    "hairpinMode": "promiscuous-bridge",
+    "maxPods": 110,
+    "podPidsLimit": -1,
+    "resolvConf": "/etc/resolv.conf",
+    "cpuCFSQuota": true,
+    "cpuCFSQuotaPeriod": "100ms",
+    "nodeStatusMaxImages": 50,
+    "maxOpenFiles": 1000000,
+    "contentType": "application/vnd.kubernetes.protobuf",
+    "kubeAPIQPS": 50,
+    "kubeAPIBurst": 100,
+    "serializeImagePulls": true,
+    "evictionHard": {
+      "imagefs.available": "15%",
+      "imagefs.inodesFree": "5%",
+      "memory.available": "100Mi",
+      "nodefs.available": "10%",
+      "nodefs.inodesFree": "5%"
+    },
+    "evictionPressureTransitionPeriod": "5m0s",
+    "enableControllerAttachDetach": true,
+    "makeIPTablesUtilChains": true,
+    "iptablesMasqueradeBit": 14,
+    "iptablesDropBit": 15,
+    "failSwapOn": true,
+    "memorySwap": {},
+    "containerLogMaxSize": "10Mi",
+    "containerLogMaxFiles": 5,
+    "containerLogMaxWorkers": 1,
+    "containerLogMonitorInterval": "10s",
+    "configMapAndSecretChangeDetectionStrategy": "Watch",
+    "enforceNodeAllocatable": [
+      "pods"
+    ],
+    "volumePluginDir": "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
+    "logging": {
+      "format": "text",
+      "flushFrequency": "5s",
+      "verbosity": 0,
+      "options": {
+        "text": {
+          "infoBufferSize": "0"
+        },
+        "json": {
+          "infoBufferSize": "0"
+        }
+      }
+    },
+    "enableSystemLogHandler": true,
+    "enableSystemLogQuery": false,
+    "shutdownGracePeriod": "0s",
+    "shutdownGracePeriodCriticalPods": "0s",
+    "crashLoopBackOff": {},
+    "enableProfilingHandler": true,
+    "enableDebugFlagsHandler": true,
+    "seccompDefault": false,
+    "memoryThrottlingFactor": 0.9,
+    "registerNode": true,
+    "localStorageCapacityIsolation": true,
+    "containerRuntimeEndpoint": "unix:///var/run/cri-dockerd.sock",
+    "failCgroupV1": false
+  }
+}
+```
+
+Also can check node kubelet config on filesystem. Check two certificate settings:
+```
+root@worker1:/# cat /var/lib/kubelet/config.yaml | grep rotateCertificates
+rotateCertificates: true
+
+root@worker1:/# cat /var/lib/kubelet/config.yaml | grep serverTLSBootstrap
+root@worker1:/#
+```
+
+rotateCertificates: true handles the client cert (for kubelet to talk to the API Server).
+serverTLSBootstrap: true handles the server cert (for scraping metrics on the kubelet by IP or DNS name).
+
+### Resolve issue with bad kubelet server certificate
+
+At this point found documentation addressing exactly this problem with kubelet server-cert:
+https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/#kubelet-serving-certs
+
+Update /root/kubeadm-config.yaml to have `serverTLSBootstrap: true` on one of the nodes (e.g. on master):
+```
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+serverTLSBootstrap: true
+```
+
+This time its not possible to use IaC via kubeadm, as ConfigMap will not get updated.
+Must manually update config map and each kubelet config and restart it, just as documentation says.
+
+Added "serverTLSBootstrap: true" next to "rotateCertificates: true":
+```
+$ k edit cm -n kube-system kubelet-config
+apiVersion: v1
+data:
+  kubelet: |
+    apiVersion: kubelet.config.k8s.io/v1beta1
+    authentication:
+      anonymous:
+        enabled: false
+      webhook:
+        cacheTTL: 0s
+        enabled: true
+      x509:
+        clientCAFile: /etc/kubernetes/pki/ca.crt
+    authorization:
+      mode: Webhook
+      webhook:
+        cacheAuthorizedTTL: 0s
+        cacheUnauthorizedTTL: 0s
+    cgroupDriver: systemd
+    clusterDNS:
+    - 10.255.0.10
+    clusterDomain: cluster.local
+    containerRuntimeEndpoint: ""
+    cpuManagerReconcilePeriod: 0s
+    crashLoopBackOff: {}
+    evictionPressureTransitionPeriod: 0s
+    fileCheckFrequency: 0s
+    healthzBindAddress: 127.0.0.1
+    healthzPort: 10248
+    httpCheckFrequency: 0s
+    imageMaximumGCAge: 0s
+    imageMinimumGCAge: 0s
+    kind: KubeletConfiguration
+    logging:
+      flushFrequency: 0
+      options:
+        json:
+          infoBufferSize: "0"
+        text:
+          infoBufferSize: "0"
+      verbosity: 0
+    memorySwap: {}
+    nodeStatusReportFrequency: 0s
+    nodeStatusUpdateFrequency: 0s
+    rotateCertificates: true
+    serverTLSBootstrap: true
+    runtimeRequestTimeout: 0s
+    shutdownGracePeriod: 0s
+    shutdownGracePeriodCriticalPods: 0s
+    staticPodPath: /etc/kubernetes/manifests
+    streamingConnectionIdleTimeout: 0s
+    syncFrequency: 0s
+    volumeStatsAggPeriod: 0s
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2025-01-26T07:24:04Z"
+  name: kubelet-config
+  namespace: kube-system
+  resourceVersion: "26567"
+  uid: 35ca2358-253b-4f2b-a89e-afb2cd9a2f84
+
+
+root@master:~# systemctl restart kubelet
+```
+
+
+Verify changes:
+```
+root@master:~# cat /var/lib/kubelet/config.yaml | grep serverTLSBootstrap
+serverTLSBootstrap: true
+
+$ kubectl get --raw "/api/v1/nodes/master/proxy/configz" | jq | rg serverTLSBootstrap
+Error from server (ServiceUnavailable): error trying to reach service: remote error: tls: internal error
+
+$ kubectl get --raw "/api/v1/nodes/worker1/proxy/configz" | jq | rg serverTLSBootstrap
+$
+
+$ kubectl get --raw "/api/v1/nodes/worker2/proxy/configz" | jq | head
+{
+  "kubeletconfig": {
+    "enableServer": true,
+    "staticPodPath": "/etc/kubernetes/manifests",
+    "podLogsDir": "/var/log/pods",
+    "syncFrequency": "1m0s",
+    "fileCheckFrequency": "20s",
+    "httpCheckFrequency": "20s",
+    "address": "0.0.0.0",
+    "port": 10250,
+```
+
+Something is suspicious. The worker1 and worker2 and worker3 kubelet configs did not change, and I can retrieve them.
+The master config clearly changed, but now I can not retrieve it via api. At this point I tried rebooting the master server, it did not help.
+
+```
+root@master:/var/lib/kubelet# systemctl status kubelet
+● kubelet.service - kubelet: The Kubernetes Node Agent
+     Loaded: loaded (/lib/systemd/system/kubelet.service; enabled; preset: enabled)
+    Drop-In: /usr/lib/systemd/system/kubelet.service.d
+             └─10-kubeadm.conf
+     Active: active (running) since Thu 2025-03-27 19:35:10 UTC; 8min ago
+       Docs: https://kubernetes.io/docs/
+   Main PID: 916 (kubelet)
+      Tasks: 12 (limit: 9482)
+     Memory: 47.1M
+        CPU: 8.626s
+     CGroup: /system.slice/kubelet.service
+             └─916 /usr/bin/kubelet --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kubelet/config.yaml --container-runtime-endpoint=>
+
+Mar 27 19:39:20 master kubelet[916]: I0327 19:39:20.552419     916 ???:1] "http: TLS handshake error from 10.128.0.16:47386: no serving certificate available for the kubelet"
+Mar 27 19:39:26 master kubelet[916]: I0327 19:39:26.549884     916 ???:1] "http: TLS handshake error from 10.128.0.16:41474: no serving certificate available for the kubelet"
+Mar 27 19:40:20 master kubelet[916]: I0327 19:40:20.554093     916 ???:1] "http: TLS handshake error from 10.128.0.16:45042: no serving certificate available for the kubelet"
+Mar 27 19:40:26 master kubelet[916]: I0327 19:40:26.550955     916 ???:1] "http: TLS handshake error from 10.128.0.16:44406: no serving certificate available for the kubelet"
+Mar 27 19:41:20 master kubelet[916]: I0327 19:41:20.553599     916 ???:1] "http: TLS handshake error from 10.128.0.16:45880: no serving certificate available for the kubelet"
+Mar 27 19:41:26 master kubelet[916]: I0327 19:41:26.550346     916 ???:1] "http: TLS handshake error from 10.128.0.16:44832: no serving certificate available for the kubelet"
+Mar 27 19:42:20 master kubelet[916]: I0327 19:42:20.553146     916 ???:1] "http: TLS handshake error from 10.128.0.16:48594: no serving certificate available for the kubelet"
+Mar 27 19:42:26 master kubelet[916]: I0327 19:42:26.550228     916 ???:1] "http: TLS handshake error from 10.128.0.16:45812: no serving certificate available for the kubelet"
+Mar 27 19:43:20 master kubelet[916]: I0327 19:43:20.552743     916 ???:1] "http: TLS handshake error from 10.128.0.16:49312: no serving certificate available for the kubelet"
+Mar 27 19:43:26 master kubelet[916]: I0327 19:43:26.550215     916 ???:1] "http: TLS handshake error from 10.128.0.16:56920: no serving certificate available for the kubelet"
+```
+
+Here I realised that kubelet now does not have a self-signed cert, but gets one from api server, which I must manually approve (there are two CSRs because a new request was put up after reboot I guess):
+```
+root@master:~# k get csr
+NAME        AGE     SIGNERNAME                      REQUESTOR            REQUESTEDDURATION   CONDITION
+csr-gw8kw   9m30s   kubernetes.io/kubelet-serving   system:node:master   <none>              Pending
+csr-lfdwj   18m     kubernetes.io/kubelet-serving   system:node:master   <none>              Pending
+
+root@master:~# k certificate approve csr-gw8kw
+certificatesigningrequest.certificates.k8s.io/csr-gw8kw approved
+
+root@master:~# k get csr
+NAME        AGE   SIGNERNAME                      REQUESTOR            REQUESTEDDURATION   CONDITION
+csr-gw8kw   13m   kubernetes.io/kubelet-serving   system:node:master   <none>              Approved,Issued
+csr-lfdwj   23m   kubernetes.io/kubelet-serving   system:node:master   <none>              Pending
+
+root@master:~# kubectl get --raw "/api/v1/nodes/master/proxy/stats/summary"  | head
+{
+ "node": {
+  "nodeName": "master",
+  "systemContainers": [
+   {
+    "name": "kubelet",
+    "startTime": "2025-03-27T19:35:10Z",
+    "cpu": {
+     "time": "2025-03-27T19:48:25Z",
+     "usageNanoCores": 19116220,
+
+
+root@master:~# kubectl get --raw "/api/v1/nodes/master/proxy/configz"  | jq
+{
+  "kubeletconfig": {
+    "enableServer": true,
+    "staticPodPath": "/etc/kubernetes/manifests",
+    "podLogsDir": "/var/log/pods",
+    "syncFrequency": "1m0s",
+    "fileCheckFrequency": "20s",
+    "httpCheckFrequency": "20s",
+    "address": "0.0.0.0",
+    "port": 10250,
+    "rotateCertificates": true,
+    "serverTLSBootstrap": true,
+    "authentication": {
+      "x509": {
+        "clientCAFile": "/etc/kubernetes/pki/ca.crt"
+      },
+      "webhook": {
+        "enabled": true,
+        "cacheTTL": "2m0s"
+      },
+      "anonymous": {
+        "enabled": false
+      }
+    },
+    "authorization": {
+      "mode": "Webhook",
+      "webhook": {
+        "cacheAuthorizedTTL": "5m0s",
+        "cacheUnauthorizedTTL": "30s"
+      }
+    },
+    "registryPullQPS": 5,
+    "registryBurst": 10,
+    "eventRecordQPS": 50,
+    "eventBurst": 100,
+    "enableDebuggingHandlers": true,
+    "healthzPort": 10248,
+    "healthzBindAddress": "127.0.0.1",
+    "oomScoreAdj": -999,
+    "clusterDomain": "cluster.local",
+    "clusterDNS": [
+      "10.255.0.10"
+    ],
+    "streamingConnectionIdleTimeout": "4h0m0s",
+    "nodeStatusUpdateFrequency": "10s",
+    "nodeStatusReportFrequency": "5m0s",
+    "nodeLeaseDurationSeconds": 40,
+    "imageMinimumGCAge": "2m0s",
+    "imageMaximumGCAge": "0s",
+    "imageGCHighThresholdPercent": 85,
+    "imageGCLowThresholdPercent": 80,
+    "volumeStatsAggPeriod": "1m0s",
+    "cgroupsPerQOS": true,
+    "cgroupDriver": "systemd",
+    "cpuManagerPolicy": "none",
+    "cpuManagerReconcilePeriod": "10s",
+    "memoryManagerPolicy": "None",
+    "topologyManagerPolicy": "none",
+    "topologyManagerScope": "container",
+    "runtimeRequestTimeout": "2m0s",
+    "hairpinMode": "promiscuous-bridge",
+    "maxPods": 110,
+    "podPidsLimit": -1,
+    "resolvConf": "/etc/resolv.conf",
+    "cpuCFSQuota": true,
+    "cpuCFSQuotaPeriod": "100ms",
+    "nodeStatusMaxImages": 50,
+    "maxOpenFiles": 1000000,
+    "contentType": "application/vnd.kubernetes.protobuf",
+    "kubeAPIQPS": 50,
+    "kubeAPIBurst": 100,
+    "serializeImagePulls": true,
+    "evictionHard": {
+      "imagefs.available": "15%",
+      "imagefs.inodesFree": "5%",
+      "memory.available": "100Mi",
+      "nodefs.available": "10%",
+      "nodefs.inodesFree": "5%"
+    },
+    "evictionPressureTransitionPeriod": "5m0s",
+    "enableControllerAttachDetach": true,
+    "makeIPTablesUtilChains": true,
+    "iptablesMasqueradeBit": 14,
+    "iptablesDropBit": 15,
+    "failSwapOn": true,
+    "memorySwap": {},
+    "containerLogMaxSize": "10Mi",
+    "containerLogMaxFiles": 5,
+    "containerLogMaxWorkers": 1,
+    "containerLogMonitorInterval": "10s",
+    "configMapAndSecretChangeDetectionStrategy": "Watch",
+    "enforceNodeAllocatable": [
+      "pods"
+    ],
+    "volumePluginDir": "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
+    "logging": {
+      "format": "text",
+      "flushFrequency": "5s",
+      "verbosity": 0,
+      "options": {
+        "text": {
+          "infoBufferSize": "0"
+        },
+        "json": {
+          "infoBufferSize": "0"
+        }
+      }
+    },
+    "enableSystemLogHandler": true,
+    "enableSystemLogQuery": false,
+    "shutdownGracePeriod": "0s",
+    "shutdownGracePeriodCriticalPods": "0s",
+    "crashLoopBackOff": {},
+    "enableProfilingHandler": true,
+    "enableDebugFlagsHandler": true,
+    "seccompDefault": false,
+    "memoryThrottlingFactor": 0.9,
+    "registerNode": true,
+    "localStorageCapacityIsolation": true,
+    "containerRuntimeEndpoint": "unix:///var/run/cri-dockerd.sock",
+    "failCgroupV1": false
+  }
+}
+
+root@master:~# k certificate deny csr-lfdwj
+certificatesigningrequest.certificates.k8s.io/csr-lfdwj denied
+
+root@master:~# k get csr
+NAME        AGE   SIGNERNAME                      REQUESTOR            REQUESTEDDURATION   CONDITION
+csr-gw8kw   14m   kubernetes.io/kubelet-serving   system:node:master   <none>              Approved,Issued
+csr-lfdwj   24m   kubernetes.io/kubelet-serving   system:node:master   <none>              Denied
+```
+
+Now everything works, delete the other CSR and lets check out the new kubelet certs:
+```
+root@master:~# ls -la /var/lib/kubelet/pki/
+total 24
+drwxr-xr-x 2 root root 4096 Mar 27 19:47 .
+drwxrwxr-x 9 root root 4096 Mar 27 19:38 ..
+-rw------- 1 root root 2822 Jan 26 07:23 kubelet-client-2025-01-26-07-23-33.pem
+lrwxrwxrwx 1 root root   59 Jan 26 07:23 kubelet-client-current.pem -> /var/lib/kubelet/pki/kubelet-client-2025-01-26-07-23-33.pem
+-rw-r--r-- 1 root root 2254 Jan 26 07:23 kubelet.crt
+-rw------- 1 root root 1679 Jan 26 07:23 kubelet.key
+-rw------- 1 root root 1143 Mar 27 19:47 kubelet-server-2025-03-27-19-47-43.pem
+lrwxrwxrwx 1 root root   59 Mar 27 19:47 kubelet-server-current.pem -> /var/lib/kubelet/pki/kubelet-server-2025-03-27-19-47-43.pem
+
+root@master:~# openssl x509 -in /var/lib/kubelet/pki/kubelet-server-current.pem -text -noout
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            dc:5c:d7:af:07:60:c2:e2:b3:a9:47:57:4d:88:54:c0
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = kubernetes
+        Validity
+            Not Before: Mar 27 19:42:43 2025 GMT
+            Not After : Mar 27 19:42:43 2026 GMT
+        Subject: O = system:nodes, CN = system:node:master
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub:
+                    04:e7:4a:34:0a:24:57:7f:94:1f:7d:01:fe:52:49:
+                    ab:29:d5:d6:5b:33:01:d9:57:a0:08:63:8b:bf:fa:
+                    c1:cd:5e:57:b6:ae:a3:71:aa:f7:3e:c0:3a:99:9c:
+                    62:28:f0:87:5a:64:1b:20:e0:47:64:c1:9d:9a:91:
+                    d5:67:9c:6c:b0
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Authority Key Identifier: 
+                A8:9C:D9:52:58:C7:51:03:69:0B:FD:72:19:C6:AC:0D:F8:FF:81:EE
+            X509v3 Subject Alternative Name: 
+                DNS:master, IP Address:10.128.0.16
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        c1:88:d8:e9:38:7a:7f:93:86:ad:71:d1:92:f7:d2:57:2f:e6:
+        ...
+        a2:a5:f7:45:cc:49:e9:e0:d5:cc:ba:d2:45:fb:e5:e2:69:2b:
+```
+
+There is a new cert added called kubelet-server-current.pem, which supposedly is the new kubelet server certificate which is Issued by same CN as cluster api cert.
+And it has IP Address under SAN = Subject Alternative Name.
+
+
+Now do the same on other worker nodes:
+```
+$ yc compute ssh --identity-file /home/artem/.ssh/id_rsa --login artem --name worker1
+
+root@worker1:~# cat /var/lib/kubelet/config.yaml
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 0s
+    cacheUnauthorizedTTL: 0s
+cgroupDriver: systemd
+clusterDNS:
+- 10.255.0.10
+clusterDomain: cluster.local
+containerRuntimeEndpoint: ""
+cpuManagerReconcilePeriod: 0s
+crashLoopBackOff: {}
+evictionPressureTransitionPeriod: 0s
+fileCheckFrequency: 0s
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 0s
+imageMaximumGCAge: 0s
+imageMinimumGCAge: 0s
+kind: KubeletConfiguration
+logging:
+  flushFrequency: 0
+  options:
+    json:
+      infoBufferSize: "0"
+    text:
+      infoBufferSize: "0"
+  verbosity: 0
+memorySwap: {}
+nodeStatusReportFrequency: 0s
+nodeStatusUpdateFrequency: 0s
+rotateCertificates: true
+serverTLSBootstrap: true
+runtimeRequestTimeout: 0s
+shutdownGracePeriod: 0s
+shutdownGracePeriodCriticalPods: 0s
+staticPodPath: /etc/kubernetes/manifests
+streamingConnectionIdleTimeout: 0s
+syncFrequency: 0s
+volumeStatsAggPeriod: 0s
+
+
+root@worker1:~# systemctl restart kubelet
+
+$ k get --raw "/api/v1/nodes/worker1/proxy/configz" | jq | rg serverTLSBootstrap
+Error from server (ServiceUnavailable): error trying to reach service: remote error: tls: internal error
+
+$ k get csr
+NAME        AGE   SIGNERNAME                      REQUESTOR             REQUESTEDDURATION   CONDITION
+csr-gw8kw   44m   kubernetes.io/kubelet-serving   system:node:master    <none>              Approved,Issued
+csr-kc259   2s    kubernetes.io/kubelet-serving   system:node:worker1   <none>              Pending
+csr-lfdwj   53m   kubernetes.io/kubelet-serving   system:node:master    <none>              Denied
+
+$ k certificate approve csr-kc259
+certificatesigningrequest.certificates.k8s.io/csr-kc259 approved
+
+$ k get csr
+NAME        AGE    SIGNERNAME                      REQUESTOR             REQUESTEDDURATION   CONDITION
+csr-gw8kw   46m    kubernetes.io/kubelet-serving   system:node:master    <none>              Approved,Issued
+csr-kc259   2m1s   kubernetes.io/kubelet-serving   system:node:worker1   <none>              Approved,Issued
+csr-lfdwj   55m    kubernetes.io/kubelet-serving   system:node:master    <none>              Denied
+
+$ k get --raw "/api/v1/nodes/worker1/proxy/configz" | jq | rg serverTLSBootstrap
+    "serverTLSBootstrap": true,
+```
+
+
+Finally each worker has been approved for 1 year and will need to be re-approved manually:
+```
+$ k get csr                      
+NAME        AGE     SIGNERNAME                      REQUESTOR             REQUESTEDDURATION   CONDITION
+csr-gw8kw   51m     kubernetes.io/kubelet-serving   system:node:master    <none>              Approved,Issued
+csr-jgsm6   49s     kubernetes.io/kubelet-serving   system:node:worker3   <none>              Approved,Issued
+csr-kc259   7m21s   kubernetes.io/kubelet-serving   system:node:worker1   <none>              Approved,Issued
+csr-lfdwj   61m     kubernetes.io/kubelet-serving   system:node:master    <none>              Denied
+csr-qm8z9   2m9s    kubernetes.io/kubelet-serving   system:node:worker2   <none>              Approved,Issued
+```
