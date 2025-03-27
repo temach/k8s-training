@@ -24,9 +24,10 @@ releases:
     version: "0.119.0" 
     values:
       - mode: "daemonset"
-        tolerations: 
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/control-plane
+        # actually avoid running on master nodes, because hostMetrics preset mounts host's root filesystem into container threatening cluster security
+        # tolerations: 
+        # - effect: NoSchedule
+        #   key: node-role.kubernetes.io/control-plane
         image:
           # must select one of these: https://github.com/orgs/open-telemetry/packages?repo_name=opentelemetry-collector-releases
           # see collector flavours: https://github.com/open-telemetry/opentelemetry-collector-releases
@@ -41,12 +42,21 @@ releases:
           # See https://opentelemetry.io/docs/kubernetes/collector/components/#kubernetes-attributes-processor for details on the receiver.
           kubernetesAttributes:
             enabled: true
-        config:
-          # disable default non-otel receivers
-          receivers:
-            jaeger: null
-            prometheus: null
-            zipkin: null
+          # See https://opentelemetry.io/docs/kubernetes/collector/components/#kubeletstats-receiver for details on the receiver.
+          kubeletMetrics:
+            enabled: true
+
+        ports:
+          # because using presets, its best not to touch "config" section,
+          # so to disable default non-otel receivers just block their ports
+          jaeger-compact:
+            enabled: false
+          jaeger-thrift:
+            enabled: false
+          jaeger-grpc:
+            enabled: false
+          zipkin:
+            enabled: false
 
   - name: prometheus
     namespace: prometheus
@@ -55,16 +65,19 @@ releases:
     values:
       - alertmanager:
           enabled: false
-
+        prometheus-node-exporter:
+          enabled: false
         prometheus-pushgateway:
           enabled: false
-
         server:
           extraFlags:
             - web.enable-lifecycle
             ## web.enable-admin-api flag controls access to the administrative HTTP API which includes functionality such as
             ## deleting time series. This is disabled by default.
             - web.enable-admin-api
+            # see: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L828
+            - enable-feature=exemplar-storage
+            - web.enable-otlp-receiver
 
           persistentVolume:
             ## If true, Prometheus server will create/use a Persistent Volume Claim

@@ -23,6 +23,9 @@ and it can both scrape metrics and receive pushed metrics instead of prometheus,
 
 Run in daemonset mode, because that allows to collect logs, add toleration to run on control-plane nodes.
 
+However drawback is that to collect hostmetrics otel-collector mounts host root filesystem into container,
+and unlike prometheus-node-exporter otel collector accepts input making it easier to take over. Therefore maybe its best to avoid running it on master nodes.
+
 Github repo: https://github.com/open-telemetry/opentelemetry-collector
 
 Helm charts (including Demo) https://opentelemetry.io/docs/platforms/kubernetes/helm/ and
