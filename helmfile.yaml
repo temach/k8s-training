@@ -117,4 +117,11 @@ releases:
           ## Prometheus' data retention size. Supported units: B, KB, MB, GB, TB, PB, EB.
           retentionSize: "7GB"
 
-
+        serverFiles:
+          prometheus.yml:
+            # drop all scrapes except prometheus itself
+            scrape_configs:
+              - job_name: prometheus
+                static_configs:
+                  - targets:
+                    - localhost:9090
