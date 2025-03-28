@@ -47,11 +47,20 @@ releases:
             enabled: true
 
         config:
+          extensions:
+            zpages:
+              # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
+              endpoint: ${env:MY_POD_IP}:55679
+          receivers:
+            # disable unused receivers: https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#configuration
+            jaeger: null
+            zipkin: null
           exporters:
+            # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
             otlphttp/prometheus:
-              endpoint: http://prometheus-server.prometheus:9090/api/v1/otlp
-              tls:
-                insecure: true
+              # prometheus needs http + protobuf targeting endpoint /api/v1/otlp/v1/metrics, see: https://prometheus.io/docs/guides/opentelemetry/
+              endpoint: http://prometheus-server.prometheus:80/api/v1/otlp
+              encoding: proto
           service:
             pipelines:
               metrics:
@@ -69,8 +78,7 @@ releases:
                 - kubeletstats
 
         ports:
-          # because using presets, its best not to touch "config" section,
-          # so to disable default non-otel receivers just block their ports
+          # unpublish unused ports, but they are still accessiable even if not published, containerPort is not security boundary
           jaeger-compact:
             enabled: false
           jaeger-thrift:
@@ -96,8 +104,6 @@ releases:
         server:
           extraFlags:
             - web.enable-lifecycle
-            ## web.enable-admin-api flag controls access to the administrative HTTP API which includes functionality such as
-            ## deleting time series. This is disabled by default.
             - web.enable-admin-api
             # see: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L828
             - enable-feature=exemplar-storage
@@ -119,7 +125,7 @@ releases:
 
         serverFiles:
           prometheus.yml:
-            # drop all scrapes except prometheus itself
+            # drop all scrapes, only scrape prometheus itself
             scrape_configs:
               - job_name: prometheus
                 static_configs:
