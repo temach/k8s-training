@@ -4,4 +4,5 @@ defaultArgs:
   - --kubelet-use-node-status-port
   - --metric-resolution=15s
   # add to avoid: "Failed to scrape node" err="Get \"https://10.128.0.25:10250/metrics/resource\": tls: failed to verify certificate: x509: cannot validate certificate for 10.128.0.25 because it doesn't contain any IP SANs" node="worker1"
+  # but better setup kubelet certs as done in kubernetes-prod: https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/#kubelet-serving-certs 
   - --kubelet-insecure-tls
