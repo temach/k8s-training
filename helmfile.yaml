@@ -46,6 +46,28 @@ releases:
           kubeletMetrics:
             enabled: true
 
+        config:
+          exporters:
+            otlphttp/prometheus:
+              endpoint: http://prometheus-server.prometheus:9090/api/v1/otlp
+              tls:
+                insecure: true
+          service:
+            pipelines:
+              metrics:
+                exporters:
+                - debug
+                - otlphttp/prometheus
+                processors:
+                - k8sattributes
+                - memory_limiter
+                - batch
+                receivers:
+                - otlp
+                - prometheus
+                - hostmetrics
+                - kubeletstats
+
         ports:
           # because using presets, its best not to touch "config" section,
           # so to disable default non-otel receivers just block their ports

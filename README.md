@@ -12,7 +12,7 @@ Registry of library/app integrations with Otel: https://opentelemetry.io/ecosyst
 
 ### Install Prometheus
 
-Take helmfile from kubernetes-istio branch, it has already been done.
+Take helmfile from kubernetes-istio branch, it has already been done. Just disable all components except for prometheus tsdb server. 
 
 
 ### Install OpenTelemetry Collector
@@ -26,11 +26,11 @@ Run in daemonset mode, because that allows to collect logs, add toleration to ru
 However drawback is that to collect hostmetrics otel-collector mounts host root filesystem into container,
 and unlike prometheus-node-exporter otel collector accepts input making it easier to take over. Therefore maybe its best to avoid running it on master nodes.
 
-Github repo: https://github.com/open-telemetry/opentelemetry-collector
-
 Helm charts (including Demo) https://opentelemetry.io/docs/platforms/kubernetes/helm/ and
-install guide https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#installing-the-chart
+install guide for k8s https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#installing-the-chart
 
+Use otel collector presets https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#presets for configuration.
+More info about what each preset activates and how it works: https://opentelemetry.io/docs/platforms/kubernetes/collector/components/
 
 Different flavours of collector: see https://github.com/open-telemetry/opentelemetry-collector-releases and https://github.com/orgs/open-telemetry/packages?repo_name=opentelemetry-collector-releases
 
@@ -239,12 +239,7 @@ service:
       address: ${env:MY_POD_IP}:8888
 ```
 
-
-Enable otel collector presets https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#presets and redeploy.
-
-
-Also disable prometheus-node-exporter and prometheus-kube-state-metrics and disable non-otel collectors:
-
+Also disable prometheus-node-exporter and prometheus-kube-state-metrics and disable non-otel collectors via disabling ports:
 ```
 # helmfile apply
 Upgrading release=otel-collector, chart=open-telemetry/opentelemetry-collector, namespace=otel
@@ -695,7 +690,7 @@ Specifically note that only otel ports are available now:
       protocol: TCP
 ```
 
-### Debug otel tls
+### Debug error with otel TLS connection to kubelet
 
 At this point I noticed errors in otel-collector logs:
 ```
@@ -736,3 +731,37 @@ For the fix see "serverTLSBootstrap: true" in kubernetes-prod branch. But as a r
 2025-03-27T20:33:29.519Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 15, "metrics": 122, "data points": 124}
 2025-03-27T20:33:32.129Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 1, "metrics": 36, "data points": 59}
 ```
+
+### Export metrics to prometheus
+
+Apparently metrics are being collected, now need to configure exporter to prometheus tsdb and add it to metrics pipeline.
+Using Prometheus as OpenTelemetry backend configuration: https://prometheus.io/docs/guides/opentelemetry/
+
+See Demo configuration: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L724
+See official exporters doc: https://opentelemetry.io/docs/collector/configuration/#exporters 
+
+Add some custom configuration, be careful not to messup configuration added by presets:
+```
+exporters:
+  otlphttp/prometheus:
+    endpoint: http://prometheus-server.prometheus:9090/api/v1/otlp
+    tls:
+      insecure: true
+service:
+  pipelines:
+    metrics:
+      exporters:
+      - debug
+      - otlphttp/prometheus
+      processors:
+      - k8sattributes
+      - memory_limiter
+      - batch
+      receivers:
+      - otlp
+      - prometheus
+      - hostmetrics
+      - kubeletstats
+```
+
+
