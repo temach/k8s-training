@@ -2231,6 +2231,8 @@ csr-lfdwj   61m     kubernetes.io/kubelet-serving   system:node:master    <none>
 csr-qm8z9   2m9s    kubernetes.io/kubelet-serving   system:node:worker2   <none>              Approved,Issued
 ```
 
+### Optionally auto-approve kubelet Certificate Signing Requests to renew kubelet-server-current.pem in 1 year
+
 Optionally add deployment to auto-approve such CSRs:
 - https://github.com/postfinance/kubelet-csr-approver
 - https://github.com/kontena/kubelet-rubber-stamp
@@ -2251,3 +2253,8 @@ do
     kubectl certificate approve $csr
 done
 ```
+
+But there are security reasons why automatic is off by default (rogue node joins cluster and advertises that its available for sensitive workloads):
+- https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#certificate-rotation
+- https://github.com/kubernetes/community/pull/1982/files?short_path=90a9845#diff-90a984514dd39c69615f0a9bc3409ec72809abe7c298924ed89d29dc7d34a18a
+- https://github.com/kubernetes-sigs/kubespray/pull/6453#discussion_r466320173
