@@ -70,10 +70,17 @@ releases:
                 exporters:
                 - debug
             telemetry:
+              # docs: https://opentelemetry.io/docs/collector/internal-telemetry/
+              # syntax: https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/observability.md
               logs:
-                level: normal
+                level: detailed
               traces:
-                level: normal
+                processors:
+                  batch:
+                    exporter:
+                      otlp:
+                        protocol: grpc/protobuf
+                        endpoint: ${MY_POD_IP}:4317
 
         ports:
           # unpublish unused ports, but they are still accessiable even if not published, containerPort is not security boundary
