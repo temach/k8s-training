@@ -51,10 +51,6 @@ releases:
             zpages:
               # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
               endpoint: ${env:MY_POD_IP}:55679
-          receivers:
-            # disable unused receivers: https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#configuration
-            jaeger: null
-            zipkin: null
           exporters:
             # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
             otlphttp/prometheus:
@@ -67,15 +63,12 @@ releases:
                 exporters:
                 - debug
                 - otlphttp/prometheus
-                processors:
-                - k8sattributes
-                - memory_limiter
-                - batch
-                receivers:
-                - otlp
-                - prometheus
-                - hostmetrics
-                - kubeletstats
+              logs:
+                exporters:
+                - debug
+              traces:
+                exporters:
+                - debug
 
         ports:
           # unpublish unused ports, but they are still accessiable even if not published, containerPort is not security boundary
