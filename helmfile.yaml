@@ -70,10 +70,10 @@ releases:
                 exporters:
                 - debug
             telemetry:
-              log:
-                level: debug
+              logs:
+                level: normal
               traces:
-                level: debug
+                level: normal
 
         ports:
           # unpublish unused ports, but they are still accessiable even if not published, containerPort is not security boundary
