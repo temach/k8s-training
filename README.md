@@ -1342,6 +1342,8 @@ It seems that kubelet certs are not fully configured as e.g. metrics-server and 
 
 The error is specifically about SAN = X509v3 Subject Alternative Name
 
+### Examine current cluster certs
+
 For reference here is formatted kube-api-server start command (tls args are there!):
 ```
 root@master:~# ps axuf | grep api
@@ -1776,6 +1778,7 @@ root@worker1:/#
 rotateCertificates: true handles the client cert (for kubelet to talk to the API Server).
 serverTLSBootstrap: true handles the server cert (for scraping metrics on the kubelet by IP or DNS name).
 
+
 ### Resolve issue with bad kubelet server certificate
 
 At this point found documentation addressing exactly this problem with kubelet server-cert:
@@ -1789,8 +1792,10 @@ kind: KubeletConfiguration
 serverTLSBootstrap: true
 ```
 
-This time its not possible to use IaC via kubeadm, as ConfigMap will not get updated.
+This time its not possible to use IaC via kubeadm, as ConfigMap will not get updated (I tried it with something like "kubeadm init phase kubelet-start --config /root/kubeadm-config.yaml").
 Must manually update config map and each kubelet config and restart it, just as documentation says.
+
+Another doc on how to update kubelet config: https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-reconfigure/#applying-kubelet-configuration-changes
 
 Added "serverTLSBootstrap: true" next to "rotateCertificates: true":
 ```
@@ -2217,11 +2222,32 @@ $ k get --raw "/api/v1/nodes/worker1/proxy/configz" | jq | rg serverTLSBootstrap
 
 Finally each worker has been approved for 1 year and will need to be re-approved manually:
 ```
-$ k get csr                      
+$ k get csr
 NAME        AGE     SIGNERNAME                      REQUESTOR             REQUESTEDDURATION   CONDITION
 csr-gw8kw   51m     kubernetes.io/kubelet-serving   system:node:master    <none>              Approved,Issued
 csr-jgsm6   49s     kubernetes.io/kubelet-serving   system:node:worker3   <none>              Approved,Issued
 csr-kc259   7m21s   kubernetes.io/kubelet-serving   system:node:worker1   <none>              Approved,Issued
 csr-lfdwj   61m     kubernetes.io/kubelet-serving   system:node:master    <none>              Denied
 csr-qm8z9   2m9s    kubernetes.io/kubelet-serving   system:node:worker2   <none>              Approved,Issued
+```
+
+Optionally add deployment to auto-approve such CSRs:
+- https://github.com/postfinance/kubelet-csr-approver
+- https://github.com/kontena/kubelet-rubber-stamp
+- home script to run at worker init for automation https://www.reddit.com/r/kubernetes/comments/1028mw3/kubeadm_join_add_ip_sans_to_kubelet/
+
+Script:
+```
+export NODE_NAME=your_node_name
+for csr in $(kubectl get csr -o yaml | 
+    yq '.items[] | 
+            select( .spec.username=="system:node:" + env(NODE_NAME) and 
+                    ( 
+                        ( has("status.conditions") | not ) or 
+                        (.status.conditions[] | select(.type=="Approved") | length)==0
+                    )
+                ) | .metadata.name');
+do
+    kubectl certificate approve $csr
+done
 ```
