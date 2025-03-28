@@ -73,10 +73,10 @@ releases:
               # docs: https://opentelemetry.io/docs/collector/internal-telemetry/
               # syntax: https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/observability.md
               logs:
-                level: detailed
+                level: DEBUG
               traces:
                 processors:
-                  batch:
+                - batch:
                     exporter:
                       otlp:
                         protocol: grpc/protobuf
