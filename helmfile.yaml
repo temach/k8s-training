@@ -48,9 +48,9 @@ releases:
 
         config:
           extensions:
+            # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
+            # endpoint on port :55679
             zpages:
-              # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
-              endpoint: ${env:MY_POD_IP}:55679
           exporters:
             # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
             otlphttp/prometheus:
@@ -69,6 +69,11 @@ releases:
               traces:
                 exporters:
                 - debug
+            telemetry:
+              log:
+                level: debug
+              traces:
+                level: debug
 
         ports:
           # unpublish unused ports, but they are still accessiable even if not published, containerPort is not security boundary
