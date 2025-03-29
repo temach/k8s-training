@@ -1214,3 +1214,6 @@ $ curl http://localhost:9090/api/v1/status/tsdb | jq
 }
 ```
 
+Exported metrics have an instance id which is a UUID identifier "service.instance.id". Read more about it here: https://opentelemetry.io/docs/specs/semconv/attributes-registry/service/#service-instance-id
+
+
