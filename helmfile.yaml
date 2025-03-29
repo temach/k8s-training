@@ -47,17 +47,25 @@ releases:
             enabled: true
 
         config:
-          extensions:
-            # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
-            # endpoint on port :55679
-            zpages:
           exporters:
             # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
             otlphttp/prometheus:
               # prometheus needs http + protobuf targeting endpoint /api/v1/otlp/v1/metrics, see: https://prometheus.io/docs/guides/opentelemetry/
               endpoint: http://prometheus-server.prometheus:80/api/v1/otlp
               encoding: proto
+
+          extensions:
+            # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
+            zpages:
+              endpoint: ${env:MY_POD_IP}:55679
+            health_check:
+              endpoint: ${env:MY_POD_IP}:13133
+
           service:
+            extensions: 
+            - health_check
+            - zpages
+
             pipelines:
               metrics:
                 exporters:
@@ -69,18 +77,11 @@ releases:
               traces:
                 exporters:
                 - debug
+
             telemetry:
               # docs: https://opentelemetry.io/docs/collector/internal-telemetry/
-              # syntax: https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/observability.md
               logs:
                 level: DEBUG
-              traces:
-                processors:
-                - batch:
-                    exporter:
-                      otlp:
-                        protocol: grpc/protobuf
-                        endpoint: ${MY_POD_IP}:4317
 
         ports:
           # unpublish unused ports, but they are still accessiable even if not published, containerPort is not security boundary
