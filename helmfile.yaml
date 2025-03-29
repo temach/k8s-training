@@ -56,6 +56,7 @@ releases:
 
           extensions:
             # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
+            # must bind to 0.0.0.0 else breaks kubectl port-forward
             zpages:
               endpoint: 0.0.0.0:55679
             health_check:
