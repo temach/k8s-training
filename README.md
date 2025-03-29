@@ -1216,4 +1216,16 @@ $ curl http://localhost:9090/api/v1/status/tsdb | jq
 
 Exported metrics have an instance id which is a UUID identifier "service.instance.id". Read more about it here: https://opentelemetry.io/docs/specs/semconv/attributes-registry/service/#service-instance-id
 
+Note that now labels use a "." dot separated format, so prom queries have to quote them. 
+
+The following three queries are the same, except last one is forbidden syntax since `__name__` has "." dot in it, so quoted form must be used.
+```
+{"container.memory.working_set_bytes", "k8s.namespace.name"="kube-system"} / (1024*1024)
+
+{__name__="container.memory.working_set_bytes", "k8s.namespace.name"="kube-system"} / (1024*1024)
+
+container.memory.working_set_bytes{"k8s.namespace.name"="kube-system"} / (1024*1024)
+```
+
+![image](https://github.com/user-attachments/assets/e2cfa486-626e-4cb7-9ae4-035bb28ee930)
 
