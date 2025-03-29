@@ -138,7 +138,7 @@ releases:
             # otel special config, see: https://prometheus.io/docs/guides/opentelemetry/#configuring-prometheus
             # see: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L836
             otlp:
-              translation_strategy: NoUTF8EscapingWithSuffixes
+              # translation_strategy: NoUTF8EscapingWithSuffixes
               keep_identifying_resource_attributes: true
               # Recommended attributes to be promoted to labels.
               promote_resource_attributes:

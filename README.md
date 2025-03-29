@@ -5,17 +5,17 @@ See https://opentelemetry.io/ecosystem/vendors/ for projects that support OpenTe
 Demo helm chart that installs components: https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-demo
 and docs for the helm chart: https://opentelemetry.io/docs/platforms/kubernetes/helm/demo/
 
-A good choice: Jaeger, FluentBit + Opensearch, Prometheus, Grafana
+Choose: OTEL collector, Jaeger, Opensearch, Prometheus, Grafana
 
 Registry of library/app integrations with Otel: https://opentelemetry.io/ecosystem/registry/?s=apache
 
 
-### Install Prometheus
+# Setup Prometheus
 
 Take helmfile from kubernetes-istio branch, it has already been done. Just disable all components except for prometheus tsdb server. 
 
 
-### Install OpenTelemetry Collector
+# Setup OpenTelemetry Collector
 
 Strictly speaking collector is not necessary, metrics/logs/traces can be send directly to the different backends in OTEL format,
 but collector is nice and it can aggreagate logs (like fluentd)
@@ -664,6 +664,8 @@ As a result error is gone:
 
 Enable zpages extension. REMEMBER TO ALSO LIST zpages UNDER "config.service.extensions" ELSE WILL NOT START.
 
+See more about configuration: https://opentelemetry.io/docs/collector/configuration/#basics
+
 Verify that metrics are collected, examine zpages main page at http://localhost:55679/debug/servicez and http://localhost:55679/debug/tracez:
 ```
 $ cat helmfile.yaml
@@ -1036,58 +1038,58 @@ $ curl http://localhost:9090/api/v1/status/tsdb | jq
   "status": "success",
   "data": {
     "headStats": {
-      "numSeries": 1315,
-      "numLabelPairs": 671,
-      "chunkCount": 2902,
-      "minTime": 1743270519015,
-      "maxTime": 1743279055618
+      "numSeries": 1478,
+      "numLabelPairs": 702,
+      "chunkCount": 2724,
+      "minTime": 1743281991962,
+      "maxTime": 1743284191965
     },
     "seriesCountByMetricName": [
       {
-        "name": "otelcol_processor_batch_batch_send_size_bucket",
-        "value": 138
-      },
-      {
         "name": "prometheus_http_request_duration_seconds_bucket",
-        "value": 80
+        "value": 160
       },
       {
         "name": "prometheus_http_response_size_bytes_bucket",
-        "value": 72
+        "value": 144
+      },
+      {
+        "name": "otelcol_processor_batch_batch_send_size_bucket",
+        "value": 69
       },
       {
         "name": "prometheus_http_requests_total",
-        "value": 57
+        "value": 60
       },
       {
         "name": "otelcol_scraper_errored_metric_points_total",
-        "value": 42
+        "value": 21
       },
       {
         "name": "otelcol_scraper_scraped_metric_points_total",
-        "value": 42
-      },
-      {
-        "name": "otelcol_receiver_refused_metric_points_total",
-        "value": 18
-      },
-      {
-        "name": "otelcol_receiver_accepted_metric_points_total",
-        "value": 18
+        "value": 21
       },
       {
         "name": "prometheus_sd_kubernetes_events_total",
         "value": 18
       },
       {
-        "name": "system_cpu_time_seconds_total",
+        "name": "prometheus_http_request_duration_seconds_sum",
+        "value": 16
+      },
+      {
+        "name": "prometheus_http_request_duration_seconds_count",
+        "value": 16
+      },
+      {
+        "name": "prometheus_http_response_size_bytes_sum",
         "value": 16
       }
     ],
     "labelValueCountByLabelName": [
       {
         "name": "__name__",
-        "value": 364
+        "value": 376
       },
       {
         "name": "le",
@@ -1102,117 +1104,125 @@ $ curl http://localhost:9090/api/v1/status/tsdb | jq
         "value": 27
       },
       {
+        "name": "k8s.pod.name",
+        "value": 12
+      },
+      {
         "name": "quantile",
         "value": 9
+      },
+      {
+        "name": "k8s.container.name",
+        "value": 7
       },
       {
         "name": "scraper",
         "value": 7
       },
       {
-        "name": "instance",
-        "value": 7
-      },
-      {
-        "name": "server_address",
+        "name": "role",
         "value": 6
       },
       {
         "name": "device",
-        "value": 6
-      },
-      {
-        "name": "service_instance_id",
         "value": 6
       }
     ],
     "memoryInBytesByLabelName": [
       {
         "name": "__name__",
-        "value": 64539
+        "value": 72086
       },
       {
         "name": "instance",
-        "value": 39234
-      },
-      {
-        "name": "service_instance_id",
-        "value": 24795
+        "value": 33982
       },
       {
         "name": "job",
-        "value": 20295
+        "value": 18920
       },
       {
-        "name": "service_name",
-        "value": 12615
-      },
-      {
-        "name": "service_version",
-        "value": 10584
+        "name": "service.instance.id",
+        "value": 15105
       },
       {
         "name": "handler",
-        "value": 4943
+        "value": 10323
       },
       {
-        "name": "le",
-        "value": 4459
+        "name": "k8s.pod.name",
+        "value": 8566
       },
       {
-        "name": "processor",
-        "value": 3453
+        "name": "service.name",
+        "value": 7685
       },
       {
-        "name": "receiver",
-        "value": 2566
+        "name": "k8s.daemonset.name",
+        "value": 6192
+      },
+      {
+        "name": "service.version",
+        "value": 5856
+      },
+      {
+        "name": "k8s.namespace.name",
+        "value": 5795
       }
     ],
     "seriesCountByLabelValuePair": [
       {
-        "name": "instance=localhost:9090",
-        "value": 709
+        "name": "job=prometheus",
+        "value": 908
       },
       {
-        "name": "job=prometheus",
-        "value": 709
+        "name": "instance=localhost:9090",
+        "value": 908
+      },
+      {
+        "name": "service.name=otelcol-contrib",
+        "value": 265
       },
       {
         "name": "job=otelcol-contrib",
-        "value": 483
+        "value": 265
       },
       {
-        "name": "service_version=0.121.0",
-        "value": 441
-      },
-      {
-        "name": "service_name=otelcol-contrib",
-        "value": 435
-      },
-      {
-        "name": "processor=batch",
-        "value": 162
-      },
-      {
-        "name": "__name__=otelcol_processor_batch_batch_send_size_bucket",
-        "value": 138
-      },
-      {
-        "name": "instance=a6971ef1-555b-46a7-ab37-473ea0ba6438",
-        "value": 88
-      },
-      {
-        "name": "receiver=hostmetrics",
-        "value": 84
+        "name": "service.version=0.121.0",
+        "value": 244
       },
       {
         "name": "__name__=prometheus_http_request_duration_seconds_bucket",
-        "value": 80
+        "value": 160
+      },
+      {
+        "name": "__name__=prometheus_http_response_size_bytes_bucket",
+        "value": 144
+      },
+      {
+        "name": "service.instance.id=44b16137-06a4-4f91-8bf9-534920dfbac5",
+        "value": 89
+      },
+      {
+        "name": "instance=44b16137-06a4-4f91-8bf9-534920dfbac5",
+        "value": 89
+      },
+      {
+        "name": "instance=10d32834-7f0a-460a-9241-df263d32420c",
+        "value": 88
       }
     ]
   }
 }
 ```
+
+### Integrate apps with otel collector
+
+TODO, see https://opentelemetry.io/docs/security/config-best-practices/#kubernetes
+also see: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver/otlpreceiver
+
+
+# View metrics in prometheus
 
 Exported metrics have an instance id which is a UUID identifier "service.instance.id". Read more about it here: https://opentelemetry.io/docs/specs/semconv/attributes-registry/service/#service-instance-id
 
@@ -1229,3 +1239,5 @@ container.memory.working_set_bytes{"k8s.namespace.name"="kube-system"} / (1024*1
 
 ![image](https://github.com/user-attachments/assets/e2cfa486-626e-4cb7-9ae4-035bb28ee930)
 
+
+# Install Opensearch
