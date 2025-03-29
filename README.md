@@ -767,7 +767,7 @@ $ curl -v http://localhost:55679/debug/servicez
 
 ```
 
-Zpages /tracez shows otel spans within the program, nice to measure e.g. tight loop performance:
+zpages /tracez shows otel spans within the program, nice to view e.g. tight loop performance or to verify POST to prometheus is 200 (note that only last 10 items per bucket are shown):
 
 ![image](https://github.com/user-attachments/assets/544d55de-be02-4606-aecf-e1c921056edb)
 
