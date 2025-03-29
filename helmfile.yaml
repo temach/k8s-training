@@ -112,23 +112,20 @@ releases:
           extraFlags:
             - web.enable-lifecycle
             - web.enable-admin-api
+            # otel special config, see: https://prometheus.io/docs/guides/opentelemetry/#configuring-prometheus
             # see: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L828
             - enable-feature=exemplar-storage
             - web.enable-otlp-receiver
 
-          persistentVolume:
-            ## If true, Prometheus server will create/use a Persistent Volume Claim
-            ## If false, use emptyDir
-            enabled: true
+          # otel special config, see: https://prometheus.io/docs/guides/opentelemetry/#configuring-prometheus
+          tsdb:
+            out_of_order_time_window: 30m
 
-            ## Prometheus server data Persistent Volume size
-            size: 8Gi
-
-          ## Prometheus data retention period (default if not specified is 15 days)
           retention: "15d"
-
-          ## Prometheus' data retention size. Supported units: B, KB, MB, GB, TB, PB, EB.
           retentionSize: "7GB"
+          persistentVolume:
+            enabled: true
+            size: 8Gi
 
         serverFiles:
           prometheus.yml:
@@ -138,3 +135,27 @@ releases:
                 static_configs:
                   - targets:
                     - localhost:9090
+            # otel special config, see: https://prometheus.io/docs/guides/opentelemetry/#configuring-prometheus
+            # see: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L836
+            otlp:
+              translation_strategy: NoUTF8EscapingWithSuffixes
+              keep_identifying_resource_attributes: true
+              # Recommended attributes to be promoted to labels.
+              promote_resource_attributes:
+                - service.instance.id
+                - service.name
+                - service.namespace
+                - cloud.availability_zone
+                - cloud.region
+                - container.name
+                - deployment.environment.name
+                - k8s.cluster.name
+                - k8s.container.name
+                - k8s.cronjob.name
+                - k8s.daemonset.name
+                - k8s.deployment.name
+                - k8s.job.name
+                - k8s.namespace.name
+                - k8s.pod.name
+                - k8s.replicaset.name
+                - k8s.statefulset.name

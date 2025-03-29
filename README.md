@@ -46,7 +46,6 @@ Different flavours of collector: see https://github.com/open-telemetry/opentelem
 - Lastly is the classic older image: image.repository="otel/opentelemetry-collector"
 
 
-
 ```
 # helmfile apply
 Upgrading release=otel-collector, chart=open-telemetry/opentelemetry-collector, namespace=otel
@@ -234,7 +233,7 @@ service:
       address: ${env:MY_POD_IP}:8888
 ```
 
-Enable presets in otel config.
+Enable presets in otel config, enable our custom config.
 Note that otel port use hostPort directive, so collector is easier to access from pods on the node (see https://opentelemetry.io/docs/security/config-best-practices/#kubernetes ) 
 Disable non-otel ports, however note that services are still accessiable from outside the container (containerPort is not a security boundary):
 ```
@@ -246,9 +245,14 @@ data:
   relay: |
     exporters:
       debug: {}
+      otlphttp/prometheus:
+        encoding: proto
+        endpoint: http://prometheus-server.prometheus:80/api/v1/otlp
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+      zpages:
+        endpoint: 0.0.0.0:55679
     processors:
       batch: {}
       k8sattributes:
@@ -372,6 +376,7 @@ data:
     service:
       extensions:
       - health_check
+      - zpages
       pipelines:
         logs:
           exporters:
@@ -386,6 +391,7 @@ data:
         metrics:
           exporters:
           - debug
+          - otlphttp/prometheus
           processors:
           - k8sattributes
           - memory_limiter
@@ -407,6 +413,8 @@ data:
           - jaeger
           - zipkin
       telemetry:
+        logs:
+          level: DEBUG
         metrics:
           address: ${env:MY_POD_IP}:8888
 kind: ConfigMap
@@ -424,7 +432,7 @@ metadata:
     helm.sh/chart: opentelemetry-collector-0.119.0
   name: otel-collector-opentelemetry-collector-agent
   namespace: otel
-  resourceVersion: "912329"
+  resourceVersion: "1017480"
   uid: b9a96297-8edc-4371-9c82-b23fe789fea5
 
 
@@ -774,7 +782,7 @@ zpages /tracez shows otel spans within the program, nice to view e.g. tight loop
 
 ### Export metrics to prometheus
 
-Apparently metrics are being collected, now need to configure exporter to prometheus tsdb and add it to metrics pipeline.
+So otel collects metrics being collected, now configure exporter to prometheus tsdb and add it to metrics pipeline.
 Using Prometheus as OpenTelemetry backend configuration: https://prometheus.io/docs/guides/opentelemetry/
 
 See Demo configuration: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L724
@@ -799,42 +807,14 @@ Add configuration for exporting metrics, be careful not to messup configuration 
 ```
 
 
-Check if configuration applied, that otlp endpoint exists, erase any previous prometheus data, erase scrape rules and restart:
+Check if configuration applied, erase any previous prometheus data (scale down prometheus and "rm -rf" PV data), remove prom scrape rules and restart:
 ```
 
 $ k port-forward -n prometheus svc/prometheus-server 9090:http
 Forwarding from 127.0.0.1:9090 -> 9090
 Forwarding from [::1]:9090 -> 9090
 
-$ curl -v http://localhost:9090/api/v1/otlp/v1/metrics
-* Host localhost:9090 was resolved.
-* IPv6: ::1
-* IPv4: 127.0.0.1
-*   Trying [::1]:9090...
-* Immediate connect fail for ::1: Address not available
-*   Trying 127.0.0.1:9090...
-* Connected to localhost (127.0.0.1) port 9090
-> GET /api/v1/otlp/v1/metrics HTTP/1.1
-> Host: localhost:9090
-> User-Agent: curl/8.7.1
-> Accept: */*
-> 
-* Request completely sent off
-< HTTP/1.1 405 Method Not Allowed
-< Allow: OPTIONS, POST
-< Content-Type: text/plain; charset=utf-8
-< X-Content-Type-Options: nosniff
-< Date: Fri, 28 Mar 2025 11:14:03 GMT
-< Content-Length: 19
-< 
-Method Not Allowed
-* Connection #0 to host localhost left intact
-
-
 $ curl http://localhost:9090/api/v1/status/tsdb | jq
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100  2008  100  2008    0     0   8574      0 --:--:-- --:--:-- --:--:--  8581
 {
   "status": "success",
   "data": {
@@ -1017,52 +997,9 @@ $ curl http://localhost:9090/api/v1/status/tsdb | jq
 }
 
 
-$ k logs -n otel otel-collector-opentelemetry-collector-agent-98qhr -f --since=10m
-2025-03-28T15:06:09.512Z	warn	batchprocessor@v0.121.0/batch_processor.go:264	Sender failed	{"otelcol.component.id": "batch", "otelcol.component.kind": "Processor", "otelcol.pipeline.id": "metrics", "otelcol.signal": "metrics", "error": "sending queue is full"}
-2025-03-28T15:06:12.253Z	info	internal/retry_sender.go:126	Exporting failed. Will retry the request after interval.	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "error": "failed to make an HTTP request: Post \"http://prometheus-server.prometheus:9090/api/v1/otlp/v1/metrics\": dial tcp 10.255.31.79:9090: connect: connection refused", "interval": "33.212484834s"}
-2025-03-28T15:06:14.832Z	info	internal/retry_sender.go:126	Exporting failed. Will retry the request after interval.	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "error": "failed to make an HTTP request: Post \"http://prometheus-server.prometheus:9090/api/v1/otlp/v1/metrics\": dial tcp 10.255.31.79:9090: connect: connection refused", "interval": "36.665057017s"}
-2025-03-28T15:06:15.059Z	info	internal/retry_sender.go:126	Exporting failed. Will retry the request after interval.	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "error": "failed to make an HTTP request: Post \"http://prometheus-server.prometheus:9090/api/v1/otlp/v1/metrics\": dial tcp 10.255.31.79:9090: connect: connection refused", "interval": "30.653994795s"}
-2025-03-28T15:06:16.096Z	error	internal/queue_sender.go:46	Exporting failed. Dropping data.	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "error": "no more retries left: failed to make an HTTP request: Post \"http://prometheus-server.prometheus:9090/api/v1/otlp/v1/metrics\": dial tcp 10.255.31.79:9090: connect: connection refused", "dropped_items": 63}
-go.opentelemetry.io/collector/exporter/exporterhelper/internal.NewQueueSender.func1
-	go.opentelemetry.io/collector/exporter@v0.121.0/exporterhelper/internal/queue_sender.go:46
-go.opentelemetry.io/collector/exporter/exporterhelper/internal/batcher.(*disabledBatcher[...]).Consume
-	go.opentelemetry.io/collector/exporter@v0.121.0/exporterhelper/internal/batcher/disabled_batcher.go:23
-go.opentelemetry.io/collector/exporter/exporterqueue.(*asyncQueue[...]).Start.func1
-	go.opentelemetry.io/collector/exporter@v0.121.0/exporterqueue/async_queue.go:47
-2025-03-28T15:06:16.098Z	info	internal/retry_sender.go:126	Exporting failed. Will retry the request after interval.	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "error": "failed to make an HTTP request: Post \"http://prometheus-server.prometheus:9090/api/v1/otlp/v1/metrics\": dial tcp 10.255.31.79:9090: connect: connection refused", "interval": "5.987798058s"}
-2025-03-28T15:06:16.137Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 1, "metrics": 39, "data points": 64}
-2025-03-28T15:06:18.277Z	info	internal/retry_sender.go:126	Exporting failed. Will retry the request after interval.	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "error": "failed to make an HTTP request: Post \"http://prometheus-server.prometheus:9090/api/v1/otlp/v1/metrics\": dial tcp 10.255.31.79:9090: connect: connection refused", "interval": "27.01400263s"}
-2025-03-28T15:06:19.549Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 6, "metrics": 19, "data points": 91}
-2025-03-28T15:06:19.549Z	error	internal/base_exporter.go:120	Exporting failed. Rejecting data.	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "error": "sending queue is full", "rejected_items": 91}
-go.opentelemetry.io/collector/exporter/exporterhelper/internal.(*BaseExporter).Send
-	go.opentelemetry.io/collector/exporter@v0.121.0/exporterhelper/internal/base_exporter.go:120
-go.opentelemetry.io/collector/exporter/exporterhelper.NewMetricsRequest.newConsumeMetrics.func1
-	go.opentelemetry.io/collector/exporter@v0.121.0/exporterhelper/metrics.go:149
-go.opentelemetry.io/collector/consumer.ConsumeMetricsFunc.ConsumeMetrics
-	go.opentelemetry.io/collector/consumer@v1.27.0/metrics.go:27
-go.opentelemetry.io/collector/internal/fanoutconsumer.(*metricsConsumer).ConsumeMetrics
-	go.opentelemetry.io/collector/internal/fanoutconsumer@v0.121.0/metrics.go:71
-go.opentelemetry.io/collector/processor/batchprocessor.(*batchMetrics).export
-	go.opentelemetry.io/collector/processor/batchprocessor@v0.121.0/batch_processor.go:494
-go.opentelemetry.io/collector/processor/batchprocessor.(*shard[...]).sendItems
-	go.opentelemetry.io/collector/processor/batchprocessor@v0.121.0/batch_processor.go:262
-go.opentelemetry.io/collector/processor/batchprocessor.(*shard[...]).startLoop
-	go.opentelemetry.io/collector/processor/batchprocessor@v0.121.0/batch_processor.go:222
-
-
 $ k debug -it --profile=sysadmin --image=nicolaka/netshoot:v0.13 -n otel --target=opentelemetry-collector otel-collector-opentelemetry-collector-agent-98qhr
 
- otel-collector-opentelemetry-collector-agent-98qhr  ~  curl -v http://prometheus-server.prometheus:9090/api/v1/otlp/v1/metrics
-* Host prometheus-server.prometheus:9090 was resolved.
-* IPv6: (none)
-* IPv4: 10.255.31.79
-*   Trying 10.255.31.79:9090...
-* connect to 10.255.31.79 port 9090 from 10.244.3.58 port 36424 failed: Connection refused
-* Failed to connect to prometheus-server.prometheus port 9090 after 1 ms: Couldn't connect to server
-* Closing connection
-curl: (7) Failed to connect to prometheus-server.prometheus port 9090 after 1 ms: Couldn't connect to server
-
- otel-collector-opentelemetry-collector-agent-98qhr  ~  curl -v http://prometheus-server.prometheus/api/v1/otlp/v1/metrics 
+ otel-collector-opentelemetry-collector-agent-98qhr  ~  curl -v http://prometheus-server.prometheus:80/api/v1/otlp/v1/metrics 
 * Host prometheus-server.prometheus:80 was resolved.
 * IPv6: (none)
 * IPv4: 10.255.31.79
@@ -1085,5 +1022,195 @@ Method Not Allowed
 * Connection #0 to host prometheus-server.prometheus left intact
 ```
 
-So the right url to reach prom should be "http://prometheus-server.prometheus/api/v1/otlp/v1/metrics"
+So the right url to reach prom should be "http://prometheus-server.prometheus:80/api/v1/otlp/v1/metrics"
+
+Fix url and verify that otel metrics reach prometheus:
+```
+$ k port-forward -n prometheus svc/prometheus-server 9090:http
+Forwarding from 127.0.0.1:9090 -> 9090
+Forwarding from [::1]:9090 -> 9090
+
+
+$ curl http://localhost:9090/api/v1/status/tsdb | jq
+{
+  "status": "success",
+  "data": {
+    "headStats": {
+      "numSeries": 1315,
+      "numLabelPairs": 671,
+      "chunkCount": 2902,
+      "minTime": 1743270519015,
+      "maxTime": 1743279055618
+    },
+    "seriesCountByMetricName": [
+      {
+        "name": "otelcol_processor_batch_batch_send_size_bucket",
+        "value": 138
+      },
+      {
+        "name": "prometheus_http_request_duration_seconds_bucket",
+        "value": 80
+      },
+      {
+        "name": "prometheus_http_response_size_bytes_bucket",
+        "value": 72
+      },
+      {
+        "name": "prometheus_http_requests_total",
+        "value": 57
+      },
+      {
+        "name": "otelcol_scraper_errored_metric_points_total",
+        "value": 42
+      },
+      {
+        "name": "otelcol_scraper_scraped_metric_points_total",
+        "value": 42
+      },
+      {
+        "name": "otelcol_receiver_refused_metric_points_total",
+        "value": 18
+      },
+      {
+        "name": "otelcol_receiver_accepted_metric_points_total",
+        "value": 18
+      },
+      {
+        "name": "prometheus_sd_kubernetes_events_total",
+        "value": 18
+      },
+      {
+        "name": "system_cpu_time_seconds_total",
+        "value": 16
+      }
+    ],
+    "labelValueCountByLabelName": [
+      {
+        "name": "__name__",
+        "value": 364
+      },
+      {
+        "name": "le",
+        "value": 101
+      },
+      {
+        "name": "handler",
+        "value": 56
+      },
+      {
+        "name": "state",
+        "value": 27
+      },
+      {
+        "name": "quantile",
+        "value": 9
+      },
+      {
+        "name": "scraper",
+        "value": 7
+      },
+      {
+        "name": "instance",
+        "value": 7
+      },
+      {
+        "name": "server_address",
+        "value": 6
+      },
+      {
+        "name": "device",
+        "value": 6
+      },
+      {
+        "name": "service_instance_id",
+        "value": 6
+      }
+    ],
+    "memoryInBytesByLabelName": [
+      {
+        "name": "__name__",
+        "value": 64539
+      },
+      {
+        "name": "instance",
+        "value": 39234
+      },
+      {
+        "name": "service_instance_id",
+        "value": 24795
+      },
+      {
+        "name": "job",
+        "value": 20295
+      },
+      {
+        "name": "service_name",
+        "value": 12615
+      },
+      {
+        "name": "service_version",
+        "value": 10584
+      },
+      {
+        "name": "handler",
+        "value": 4943
+      },
+      {
+        "name": "le",
+        "value": 4459
+      },
+      {
+        "name": "processor",
+        "value": 3453
+      },
+      {
+        "name": "receiver",
+        "value": 2566
+      }
+    ],
+    "seriesCountByLabelValuePair": [
+      {
+        "name": "instance=localhost:9090",
+        "value": 709
+      },
+      {
+        "name": "job=prometheus",
+        "value": 709
+      },
+      {
+        "name": "job=otelcol-contrib",
+        "value": 483
+      },
+      {
+        "name": "service_version=0.121.0",
+        "value": 441
+      },
+      {
+        "name": "service_name=otelcol-contrib",
+        "value": 435
+      },
+      {
+        "name": "processor=batch",
+        "value": 162
+      },
+      {
+        "name": "__name__=otelcol_processor_batch_batch_send_size_bucket",
+        "value": 138
+      },
+      {
+        "name": "instance=a6971ef1-555b-46a7-ab37-473ea0ba6438",
+        "value": 88
+      },
+      {
+        "name": "receiver=hostmetrics",
+        "value": 84
+      },
+      {
+        "name": "__name__=prometheus_http_request_duration_seconds_bucket",
+        "value": 80
+      }
+    ]
+  }
+}
+```
 
