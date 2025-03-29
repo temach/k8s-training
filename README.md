@@ -764,8 +764,12 @@ $ curl -v http://localhost:55679/debug/servicez
 </table><h6><a href="pipelinez">Pipelines</a></h6><h6><a href="extensionz">Extensions</a></h6><h6><a href="featurez">Features</a></h6></body>
 * Connection #0 to host localhost left intact
 </html>
+
 ```
 
+Zpages /tracez shows otel spans within the program, nice to measure e.g. tight loop performance:
+
+![image](https://github.com/user-attachments/assets/544d55de-be02-4606-aecf-e1c921056edb)
 
 
 ### Export metrics to prometheus
