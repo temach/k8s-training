@@ -57,7 +57,7 @@ releases:
           extensions:
             # ui to debug collector: https://github.com/open-telemetry/opentelemetry-collector/tree/main/extension/zpagesextension
             zpages:
-              endpoint: ${env:MY_POD_IP}:55679
+              endpoint: 0.0.0.0:55679
             health_check:
               endpoint: ${env:MY_POD_IP}:13133
 
