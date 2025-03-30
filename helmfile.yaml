@@ -57,7 +57,7 @@ releases:
             
             # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/exporter/prometheusremotewriteexporter
             prometheusremotewrite/prometheus:
-              endpoint: http://prometheus-server.prometheus:80/api/v1/push
+              endpoint: http://prometheus-server.prometheus:80/api/v1/write
               resource_to_telemetry_conversion:
                # Convert resource attributes to metric labels
                 enabled: true
