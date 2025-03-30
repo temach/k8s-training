@@ -143,6 +143,7 @@ releases:
             # see: https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml#L828
             - enable-feature=exemplar-storage
             - web.enable-otlp-receiver
+            - web.enable-remote-write-receiver
 
           # otel special config, see: https://prometheus.io/docs/guides/opentelemetry/#configuring-prometheus
           tsdb:
