@@ -48,6 +48,14 @@ releases:
 
         # reference, see: https://opentelemetry.io/docs/collector/configuration/
         config:
+
+          receivers:
+
+            # disable self scrapes
+            prometheus:
+              config:
+                scrape_configs: {}
+
           exporters:
             # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
             otlphttp/prometheus:

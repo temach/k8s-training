@@ -1222,8 +1222,7 @@ TODO, see https://opentelemetry.io/docs/security/config-best-practices/#kubernet
 also see: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver/otlpreceiver
 
 
-Make a simple python app: https://opentelemetry.io/docs/languages/python/getting-started/
-
+Make a simple python flask app: https://opentelemetry.io/docs/languages/python/getting-started/
 ```
 $ mkdir otel-getting-started
 $ cd otel-getting-started
@@ -1237,7 +1236,23 @@ $ vim app.py
 $ flask run -p 8080
 $ curl http://localhost:8080/rolldice
 
+$ opentelemetry-bootstrap -a install
+
+## copy source from https://opentelemetry.io/docs/languages/python/getting-started/#metrics
+$ vim app.py
+
+$ export OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+$ opentelemetry-instrument --traces_exporter console --metrics_exporter console --logs_exporter console --service_name dice-server flask run -p 8080
+$ curl http://localhost:8080/rolldice
+
+$ docker run -p 4317:4317 -v ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml otel/opentelemetry-collector-contrib:0.121.0
+
+$ pip install opentelemetry-exporter-otlp
+$ export OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+$ opentelemetry-instrument --logs_exporter otlp --exporter_otlp_endpoint 0.0.0.0:4317 flask run -p 8080
 ```
+
+Deploy it, and reconfigure metrics collector to stop its own metrics.
 
 
 # View metrics in prometheus

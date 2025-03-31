@@ -27,6 +27,25 @@ spec:
         app.kubernetes.io/name: http-server
         app.kubernetes.io/version: 0.6.9
     spec:
+      # # just always place app this on worker1 for simplicity
+      # affinity:
+      #   nodeAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: kubernetes.io/hostname
+      #           operator: In
+      #           values:
+      #           - worker1
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - worker1
       containers:
         - name: server-container
           image: docker.io/temach/otel-getting-started-py-flask-app:latest
