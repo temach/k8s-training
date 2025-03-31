@@ -1,0 +1,113 @@
+# HELP otelcol_exporter_prometheusremotewrite_consumers Number of configured workers to use to fan out the outgoing requests
+# TYPE otelcol_exporter_prometheusremotewrite_consumers gauge
+otelcol_exporter_prometheusremotewrite_consumers{exporter="prometheusremotewrite/prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 5
+# HELP otelcol_exporter_prometheusremotewrite_sent_batches Number of remote write request batches sent to the remote write endpoint regardless of success or failure
+# TYPE otelcol_exporter_prometheusremotewrite_sent_batches counter
+otelcol_exporter_prometheusremotewrite_sent_batches{exporter="prometheusremotewrite/prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 112
+# HELP otelcol_exporter_prometheusremotewrite_translated_time_series Number of Prometheus time series that were translated from OTel metrics
+# TYPE otelcol_exporter_prometheusremotewrite_translated_time_series counter
+otelcol_exporter_prometheusremotewrite_translated_time_series{exporter="prometheusremotewrite/prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 2937
+# HELP otelcol_exporter_queue_capacity Fixed capacity of the retry queue (in batches) [alpha]
+# TYPE otelcol_exporter_queue_capacity gauge
+otelcol_exporter_queue_capacity{data_type="metrics",exporter="prometheusremotewrite/prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 10000
+# HELP otelcol_exporter_queue_size Current size of the retry queue (in batches) [alpha]
+# TYPE otelcol_exporter_queue_size gauge
+otelcol_exporter_queue_size{data_type="metrics",exporter="prometheusremotewrite/prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 0
+# HELP otelcol_exporter_send_failed_metric_points Number of metric points in failed attempts to send to destination. [alpha]
+# TYPE otelcol_exporter_send_failed_metric_points counter
+otelcol_exporter_send_failed_metric_points{exporter="debug",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 0
+otelcol_exporter_send_failed_metric_points{exporter="prometheusremotewrite/prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 244
+# HELP otelcol_exporter_sent_metric_points Number of metric points successfully sent to destination. [alpha]
+# TYPE otelcol_exporter_sent_metric_points counter
+otelcol_exporter_sent_metric_points{exporter="debug",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1761
+otelcol_exporter_sent_metric_points{exporter="prometheusremotewrite/prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1517
+# HELP otelcol_otelsvc_k8s_pod_added Number of pod add events received
+# TYPE otelcol_otelsvc_k8s_pod_added counter
+otelcol_otelsvc_k8s_pod_added{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 9
+# HELP otelcol_otelsvc_k8s_pod_table_size Size of table containing pod info
+# TYPE otelcol_otelsvc_k8s_pod_table_size gauge
+otelcol_otelsvc_k8s_pod_table_size{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 6
+# HELP otelcol_otelsvc_k8s_pod_updated Number of pod update events received
+# TYPE otelcol_otelsvc_k8s_pod_updated counter
+otelcol_otelsvc_k8s_pod_updated{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 24
+# HELP otelcol_otelsvc_k8s_replicaset_added Number of ReplicaSet add events received
+# TYPE otelcol_otelsvc_k8s_replicaset_added counter
+otelcol_otelsvc_k8s_replicaset_added{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 45
+# HELP otelcol_otelsvc_k8s_replicaset_updated Number of ReplicaSet update events received
+# TYPE otelcol_otelsvc_k8s_replicaset_updated counter
+otelcol_otelsvc_k8s_replicaset_updated{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 66
+# HELP otelcol_process_cpu_seconds Total CPU user and system time in seconds [alpha]
+# TYPE otelcol_process_cpu_seconds counter
+otelcol_process_cpu_seconds{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1.23
+# HELP otelcol_process_memory_rss Total physical memory (resident set size) [alpha]
+# TYPE otelcol_process_memory_rss gauge
+otelcol_process_memory_rss{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1.80875264e+08
+# HELP otelcol_process_runtime_heap_alloc_bytes Bytes of allocated heap objects (see 'go doc runtime.MemStats.HeapAlloc') [alpha]
+# TYPE otelcol_process_runtime_heap_alloc_bytes gauge
+otelcol_process_runtime_heap_alloc_bytes{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 2.3795488e+07
+# HELP otelcol_process_runtime_total_alloc_bytes Cumulative bytes allocated for heap objects (see 'go doc runtime.MemStats.TotalAlloc') [alpha]
+# TYPE otelcol_process_runtime_total_alloc_bytes counter
+otelcol_process_runtime_total_alloc_bytes{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 7.7136536e+07
+# HELP otelcol_process_runtime_total_sys_memory_bytes Total bytes of memory obtained from the OS (see 'go doc runtime.MemStats.Sys') [alpha]
+# TYPE otelcol_process_runtime_total_sys_memory_bytes gauge
+otelcol_process_runtime_total_sys_memory_bytes{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 4.4651784e+07
+# HELP otelcol_process_uptime Uptime of the process [alpha]
+# TYPE otelcol_process_uptime counter
+otelcol_process_uptime{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 485.162279331
+# HELP otelcol_processor_accepted_metric_points Number of metric points successfully pushed into the next component in the pipeline. [deprecated since v0.110.0]
+# TYPE otelcol_processor_accepted_metric_points counter
+otelcol_processor_accepted_metric_points{processor="memory_limiter",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1761
+# HELP otelcol_processor_batch_batch_send_size Number of units in the batch
+# TYPE otelcol_processor_batch_batch_send_size histogram
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="10"} 0
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="25"} 1
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="50"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="75"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="100"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="250"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="500"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="750"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="1000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="2000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="3000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="4000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="5000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="6000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="7000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="8000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="9000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="10000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="20000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="30000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="50000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="100000"} 48
+otelcol_processor_batch_batch_send_size_bucket{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",le="+Inf"} 48
+otelcol_processor_batch_batch_send_size_sum{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1761
+otelcol_processor_batch_batch_send_size_count{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 48
+# HELP otelcol_processor_batch_metadata_cardinality Number of distinct metadata value combinations being processed
+# TYPE otelcol_processor_batch_metadata_cardinality gauge
+otelcol_processor_batch_metadata_cardinality{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 3
+# HELP otelcol_processor_batch_timeout_trigger_send Number of times the batch was sent due to a timeout trigger
+# TYPE otelcol_processor_batch_timeout_trigger_send counter
+otelcol_processor_batch_timeout_trigger_send{processor="batch",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 48
+# HELP otelcol_processor_incoming_items Number of items passed to the processor. [alpha]
+# TYPE otelcol_processor_incoming_items counter
+otelcol_processor_incoming_items{otel_signal="metrics",processor="k8sattributes",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1761
+otelcol_processor_incoming_items{otel_signal="metrics",processor="memory_limiter",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1761
+# HELP otelcol_processor_outgoing_items Number of items emitted from the processor. [alpha]
+# TYPE otelcol_processor_outgoing_items counter
+otelcol_processor_outgoing_items{otel_signal="metrics",processor="k8sattributes",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1761
+otelcol_processor_outgoing_items{otel_signal="metrics",processor="memory_limiter",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1761
+# HELP otelcol_receiver_accepted_metric_points Number of metric points successfully pushed into the pipeline. [alpha]
+# TYPE otelcol_receiver_accepted_metric_points counter
+otelcol_receiver_accepted_metric_points{receiver="prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",transport="http"} 1761
+# HELP otelcol_receiver_refused_metric_points Number of metric points that could not be pushed into the pipeline. [alpha]
+# TYPE otelcol_receiver_refused_metric_points counter
+otelcol_receiver_refused_metric_points{receiver="prometheus",service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0",transport="http"} 0
+# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+promhttp_metric_handler_errors_total{cause="gathering"} 0
+# HELP target_info Target metadata
+# TYPE target_info gauge
+target_info{service_instance_id="3b99abb6-6645-4ddf-964e-368459478e27",service_name="otelcol-contrib",service_version="0.121.0"} 1

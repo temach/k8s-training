@@ -1222,11 +1222,35 @@ TODO, see https://opentelemetry.io/docs/security/config-best-practices/#kubernet
 also see: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver/otlpreceiver
 
 
+Make a simple python app: https://opentelemetry.io/docs/languages/python/getting-started/
+
+```
+$ mkdir otel-getting-started
+$ cd otel-getting-started
+$ python3 -m venv venv
+$ source ./venv/bin/activate\n
+$ pip install -r requirements.txt
+
+## copy source from https://opentelemetry.io/docs/languages/python/getting-started/#create-and-launch-an-http-server
+$ vim app.py
+
+$ flask run -p 8080
+$ curl http://localhost:8080/rolldice
+
+```
+
+
 # View metrics in prometheus
 
 Exported metrics have an instance id which is a UUID identifier "service.instance.id". Read more about it here: https://opentelemetry.io/docs/specs/semconv/attributes-registry/service/#service-instance-id
 
-Note that now labels use a "." dot separated format, so prom queries have to quote them. 
+Note that now labels use a "." dot separated format, so prom queries have to quote them. See: https://prometheus.io/blog/2024/03/14/commitment-to-opentelemetry/#support-utf-8-metric-and-label-names
+
+Links on using otel with prom:
+- https://grafana.com/blog/2024/11/06/prometheus-3.0-and-opentelemetry-a-practical-guide-to-storing-and-querying-otel-data/
+- UX of using target_info https://docs.google.com/document/d/1gG-eTQ4SxmfbGwkrblnUk97fWQA93umvXHEzQn2Nv7E/edit?tab=t.0
+- https://grafana.com/blog/2023/07/20/a-practical-guide-to-data-collection-with-opentelemetry-and-prometheus/#6-use-prometheus-remote-write-exporter
+- remote write seems to accept metrics metadata, whereas otel api of prometheus seemengly does not, see: https://github.com/prometheus/prometheus/issues/12608
 
 The following three queries are the same, except last one is forbidden syntax since `__name__` has "." dot in it, so quoted form must be used.
 ```
@@ -1240,4 +1264,6 @@ container.memory.working_set_bytes{"k8s.namespace.name"="kube-system"} / (1024*1
 ![image](https://github.com/user-attachments/assets/e2cfa486-626e-4cb7-9ae4-035bb28ee930)
 
 
+
 # Install Opensearch
+
