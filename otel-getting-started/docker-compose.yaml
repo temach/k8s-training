@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: myapp
+    image: "temach/otel-getting-started-py-flask-app:latest"
     ports:
       - "8080:8080"
     environment:

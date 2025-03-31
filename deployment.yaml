@@ -27,29 +27,21 @@ spec:
         app.kubernetes.io/name: http-server
         app.kubernetes.io/version: 0.6.9
     spec:
-      volumes:
-        - name: shared
-          emptyDir: {}
-      initContainers:
-        - name: generate-index
-          image: nicolaka/netshoot:v0.13
-          command: ["sh", "-c"]
-          args:
-          - echo "<html><p>Hello $(date)</p></html>" > /init/index.html
-          volumeMounts:
-            - name: shared
-              mountPath: /init
       containers:
         - name: server-container
-          image: python:3.13
+          image: docker.io/temach/otel-getting-started-py-flask-app:latest
           ports:
             - containerPort: 8080
-          command: ["python"]
-          args: ["-m", "http.server", "8080", "--directory", "/homework"]
           resources:
             requests:
               memory: "100Mi"
               cpu: "200m"
-          volumeMounts:
-            - name: shared
-              mountPath: /homework
+          env:
+          # otel best practices, see: https://opentelemetry.io/docs/security/config-best-practices/#kubernetes
+          - name: MY_HOST_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          # dependant recursive env variables, see: https://kubernetes.io/docs/tasks/inject-data-application/define-interdependent-environment-variables
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://$(MY_HOST_IP):4317
