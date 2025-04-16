@@ -27,16 +27,7 @@ spec:
         app.kubernetes.io/name: http-server
         app.kubernetes.io/version: 0.6.9
     spec:
-      # # just always place app this on worker1 for simplicity
-      # affinity:
-      #   nodeAffinity:
-      #     preferredDuringSchedulingIgnoredDuringExecution:
-      #       nodeSelectorTerms:
-      #       - matchExpressions:
-      #         - key: kubernetes.io/hostname
-      #           operator: In
-      #           values:
-      #           - worker1
+      # just always place app this on worker1 for simplicity
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -62,5 +53,6 @@ spec:
               fieldRef:
                 fieldPath: status.hostIP
           # dependant recursive env variables, see: https://kubernetes.io/docs/tasks/inject-data-application/define-interdependent-environment-variables
+          # for env var meaning see: https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
           - name: OTEL_EXPORTER_OTLP_ENDPOINT
             value: http://$(MY_HOST_IP):4317
