@@ -1321,6 +1321,9 @@ Read more about resource attributes that should exist: https://opentelemetry.io/
 The end result is below (latest evolution is the first row to time series):
 ![image](https://github.com/user-attachments/assets/c09fc19c-0004-45e3-9d3c-337b1ba4a872)
 
+And target info is only available for the flask app and is populated with:
+![image](https://github.com/user-attachments/assets/962684d1-dc51-4fbe-8bea-e2ee88ac7e99)
+
 
 # View metrics in prometheus
 
