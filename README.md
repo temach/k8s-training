@@ -1312,6 +1312,11 @@ After adding pod ip it can locate the pod ("getting the pod") and assign metadat
 2025-04-17T02:13:46.386Z	info	Logs	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "logs", "resource logs": 1, "log records": 2}
 ```
 
+And attributes are visible in prometheus:
+![image](https://github.com/user-attachments/assets/dd16ab07-34ec-44f1-9691-4e8710ca88a6)
+
+Job and service name are not set, but they can also be configured with env variables for pod.
+
 
 # View metrics in prometheus
 
