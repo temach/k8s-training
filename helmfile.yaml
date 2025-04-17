@@ -34,24 +34,20 @@ releases:
           # see collector flavours: https://github.com/open-telemetry/opentelemetry-collector-releases
           repository: "otel/opentelemetry-collector-contrib" 
         presets:
-          # See https://opentelemetry.io/docs/kubernetes/collector/components/#filelog-receiver for details on the receiver.
-          logsCollection:
-            enabled: false
-          # See https://opentelemetry.io/docs/kubernetes/collector/components/#host-metrics-receiver for details on the receiver.
-          hostMetrics:
-            enabled: false
-          # See https://opentelemetry.io/docs/kubernetes/collector/components/#kubernetes-attributes-processor for details on the receiver.
+          # for details on presets below, see https://opentelemetry.io/docs/kubernetes/collector/components/
           kubernetesAttributes:
             enabled: true
-          # See https://opentelemetry.io/docs/kubernetes/collector/components/#kubeletstats-receiver for details on the receiver.
           kubeletMetrics:
+            enabled: false
+          logsCollection:
+            enabled: false
+          hostMetrics:
             enabled: false
 
         # reference, see: https://opentelemetry.io/docs/collector/configuration/
         config:
 
           receivers:
-
             # disable self scrapes of collector
             prometheus:
               config:
@@ -79,14 +75,6 @@ releases:
             health_check:
               endpoint: ${env:MY_POD_IP}:13133
 
-          # processors:
-          #   resource:
-          #     # set instance id to pod name
-          #     attributes:
-          #     - key: service.instance.id
-          #       from_attribute: k8s.pod.uid
-          #       action: insert
-
           service:
             extensions: 
             - health_check
@@ -97,13 +85,6 @@ releases:
                 exporters:
                 - debug
                 - otlphttp/prometheus
-                  # - prometheusremotewrite/prometheus
-                  # processors:
-                  # # order is important: https://github.com/open-telemetry/opentelemetry-collector/tree/main/processor#recommended-processors
-                  # - memory_limiter
-                  # - k8sattributes
-                  # # - resource
-                  # - batch
               logs:
                 exporters:
                 - debug
