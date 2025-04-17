@@ -1312,7 +1312,11 @@ After adding pod ip it can locate the pod ("getting the pod") and assign metadat
 And attributes are visible in prometheus:
 ![image](https://github.com/user-attachments/assets/dd16ab07-34ec-44f1-9691-4e8710ca88a6)
 
-Job and service name are not set, but they can also be configured with env variables for pod.
+Job and service name can also be set via service.name env var (duplicates to "job" label as well)
+
+Finally to add e.g. k8s.cluster.uid, must adjust the k8sattributes processor config, enabling an extra k8s.cluster.uid metadata extraction.
+
+The end result is below (latest evolution is the first row to time series):
 
 
 # View metrics in prometheus
