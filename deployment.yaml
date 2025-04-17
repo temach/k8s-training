@@ -62,5 +62,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: MY_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: k8s.pod.ip=$(MY_POD_IP)
+              value: k8s.pod.ip=$(MY_POD_IP),service.name=$(MY_SERVICE_NAME)
