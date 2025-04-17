@@ -1257,7 +1257,7 @@ Deploy it, and reconfigure metrics collector to stop its own metrics.
 ### Troubleshoot k8s attributes missing
 
 When sending OTLP data to `hostPort` using the method described in kubernetes best practices https://opentelemetry.io/docs/security/config-best-practices/#kubernetes,
-the default configuration of the k8sattributes` processor ( https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor) 
+the default configuration of the `k8sattributes processor` ( https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor) 
 prevents enriching pod OTLP data with k8s metadata. For example, the k8s.pod.name and the k8s.namespace.name attributes won't be included. If pod association rules aren't 
 configured for the `k8sattributes` processor, resources are associated with metadata only by connection's IP Address.  This happens because the Collector sees this connection
 as coming from the node and is unable to associate the pod with incoming OTLP data.
