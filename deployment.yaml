@@ -65,6 +65,8 @@ spec:
             - name: MY_SERVICE_NAME
               valueFrom:
                 fieldRef:
-                  fieldPath: metadata.name
+                  # see https://kubernetes.io/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef
+                  # labels: "app.kubernetes.io/name" is the default label for service name
+                  fieldPath: metadata.labels['app.kubernetes.io/name']
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: k8s.pod.ip=$(MY_POD_IP),service.name=$(MY_SERVICE_NAME)
