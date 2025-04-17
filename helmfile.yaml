@@ -35,14 +35,15 @@ releases:
           repository: "otel/opentelemetry-collector-contrib" 
         presets:
           # for details on presets below, see https://opentelemetry.io/docs/kubernetes/collector/components/
+          # and https://opentelemetry.io/docs/platforms/kubernetes/helm/collector/#presets
           kubernetesAttributes:
             enabled: true
           kubeletMetrics:
-            enabled: false
+            enabled: true
           logsCollection:
             enabled: false
           hostMetrics:
-            enabled: false
+            enabled: true
 
         # reference, see: https://opentelemetry.io/docs/collector/configuration/
         config:
