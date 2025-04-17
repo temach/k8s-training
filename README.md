@@ -1319,6 +1319,7 @@ Finally to add e.g. k8s.cluster.uid, must adjust the k8sattributes processor con
 Read more about resource attributes that should exist: https://opentelemetry.io/docs/specs/semconv/resource/
 
 The end result is below (latest evolution is the first row to time series):
+![image](https://github.com/user-attachments/assets/c09fc19c-0004-45e3-9d3c-337b1ba4a872)
 
 
 # View metrics in prometheus
