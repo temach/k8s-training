@@ -1218,7 +1218,7 @@ $ curl http://localhost:9090/api/v1/status/tsdb | jq
 
 ### Integrate apps with otel collector
 
-TODO, see https://opentelemetry.io/docs/security/config-best-practices/#kubernetes
+See https://opentelemetry.io/docs/security/config-best-practices/#kubernetes
 also see: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver/otlpreceiver
 
 
