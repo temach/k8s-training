@@ -47,12 +47,20 @@ spec:
               memory: "100Mi"
               cpu: "200m"
           env:
-          # otel best practices, see: https://opentelemetry.io/docs/security/config-best-practices/#kubernetes
-          - name: MY_HOST_IP
-            valueFrom:
-              fieldRef:
-                fieldPath: status.hostIP
-          # dependant recursive env variables, see: https://kubernetes.io/docs/tasks/inject-data-application/define-interdependent-environment-variables
-          # for env var meaning see: https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
-          - name: OTEL_EXPORTER_OTLP_ENDPOINT
-            value: http://$(MY_HOST_IP):4317
+            # otel best practices, see: https://opentelemetry.io/docs/security/config-best-practices/#kubernetes
+            - name: MY_HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            # dependant recursive env variables, see: https://kubernetes.io/docs/tasks/inject-data-application/define-interdependent-environment-variables
+            # for env var meaning see: https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://$(MY_HOST_IP):4317
+
+            # since otel data is sent to the host, the source ip of pod is not visible to otel-collector, so must manually set it as attribute, else k8sattributesprocessor will not enrich
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: k8s.pod.ip=$(MY_POD_IP)

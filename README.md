@@ -1254,6 +1254,64 @@ $ opentelemetry-instrument --logs_exporter otlp --exporter_otlp_endpoint 0.0.0.0
 
 Deploy it, and reconfigure metrics collector to stop its own metrics.
 
+### Troubleshoot k8s attributes missing
+
+When sending OTLP data to `hostPort` using the method described in kubernetes best practices https://opentelemetry.io/docs/security/config-best-practices/#kubernetes,
+the default configuration of the k8sattributes` processor ( https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor) 
+prevents enriching pod OTLP data with k8s metadata. For example, the k8s.pod.name and the k8s.namespace.name attributes won't be included. If pod association rules aren't 
+configured for the `k8sattributes` processor, resources are associated with metadata only by connection's IP Address.  This happens because the Collector sees this connection
+as coming from the node and is unable to associate the pod with incoming OTLP data.
+
+So in order for the flask app to get k8sattributes, a few options are available to trigger default pod association rules:
+```
+k8sattributes:
+ pod_association:
+  sources:
+    # This rule associates all resources containing the 'k8s.pod.ip' attribute with the matching pods. If this attribute is not present in the resource, this rule will not be able to find the matching pod.
+    - from: resource_attribute
+      name: k8s.pod.ip
+  sources:
+    # This rule associates all resources containing the 'k8s.pod.uid' attribute with the matching pods. If this attribute is not present in the resource, this rule will not be able to find the matching pod.
+    - from: resource_attribute
+      name: k8s.pod.uid
+  sources:
+    # This rule will use the IP from the incoming connection from which the resource is received, and find the matching pod, based on the 'pod.status.podIP' of the observed pods
+    - from: connection
+```
+
+1) run another otel-collector as deployment (not as DaemonSet like now) then send data to it, now via "connection" k8satrributes processor the original pod can be discovered and otel can be enriched.
+
+2) ensure that otel data sends k8s.pod.ip or k8s.pod.uid, e.g. by setting env variables for otel instrumentation (See "SDK Configuration"): https://opentelemetry.io/docs/languages/sdk-configuration/general/ and https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
+
+To add k8s.pod.ip use the following:
+export OTEL_RESOURCE_ATTRIBUTES="key1=value1,key2=value2"
+
+k8s yaml env downward api pod ip:
+```
+env:
+ # since otel data is sent to the host, the source ip of pod is not visible to otel-collector, so must manually set it as attribute, else k8sattributesprocessor will not enrich
+ - name: MY_POD_IP
+ valueFrom:
+   fieldRef:
+     fieldPath: status.podIP
+ - name: OTEL_RESOURCE_ATTRIBUTES
+ value: k8s.pod.ip=$(MY_POD_IP)
+```
+
+Previously this was in otel collector logs (pod connection shown as 10.244.1.1 the cni0 bridge interface on the node):
+```
+2025-04-17T02:08:50.138Z	debug	k8sattributesprocessor@v0.121.0/processor.go:143	evaluating pod identifier	{"otelcol.component.id": "k8sattributes", "otelcol.component.kind": "Processor", "otelcol.pipeline.id": "metrics", "otelcol.signal": "metrics", "value": [{"Source":{"From":"connection","Name":""},"Value":"10.244.1.1"},{"Source":{"From":"","Name":""},"Value":""},{"Source":{"From":"","Name":""},"Value":""},{"Source":{"From":"","Name":""},"Value":""}]}
+2025-04-17T02:08:50.149Z	info	Metrics	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "resource metrics": 1, "metrics": 3, "data points": 7}
+2025-04-17T02:08:50.149Z	debug	otlphttpexporter@v0.121.0/otlp.go:177	Preparing to make HTTP request	{"otelcol.component.id": "otlphttp/prometheus", "otelcol.component.kind": "Exporter", "otelcol.signal": "metrics", "url": "http://prometheus-server.prometheus:80/api/v1/otlp/v1/metrics"}
+```
+
+After adding pod ip it can locate the pod ("getting the pod") and assign metadata:
+```
+2025-04-17T02:13:46.287Z	debug	k8sattributesprocessor@v0.121.0/processor.go:143	evaluating pod identifier	{"otelcol.component.id": "k8sattributes", "otelcol.component.kind": "Processor", "otelcol.pipeline.id": "logs", "otelcol.signal": "logs", "value": [{"Source":{"From":"resource_attribute","Name":"k8s.pod.ip"},"Value":"10.244.1.9"},{"Source":{"From":"","Name":""},"Value":""},{"Source":{"From":"","Name":""},"Value":""},{"Source":{"From":"","Name":""},"Value":""}]}
+2025-04-17T02:13:46.287Z	debug	k8sattributesprocessor@v0.121.0/processor.go:159	getting the pod	{"otelcol.component.id": "k8sattributes", "otelcol.component.kind": "Processor", "otelcol.pipeline.id": "logs", "otelcol.signal": "logs", "pod": {"Name":"http-server-f55946b57-xncpr","Address":"10.244.1.9","PodUID":"13e5be14-6e18-4df1-976a-4fa7c7da5226","Attributes":{"k8s.deployment.name":"http-server","k8s.namespace.name":"default","k8s.node.name":"worker1","k8s.pod.name":"http-server-f55946b57-xncpr","k8s.pod.start_time":"2025-04-17T02:13:39Z","k8s.pod.uid":"13e5be14-6e18-4df1-976a-4fa7c7da5226"},"StartTime":"2025-04-17T02:13:39Z","Ignore":false,"Namespace":"default","NodeName":"worker1","HostNetwork":false,"Containers":{"ByID":null,"ByName":null},"DeletedAt":"0001-01-01T00:00:00Z"}}
+2025-04-17T02:13:46.386Z	info	Logs	{"otelcol.component.id": "debug", "otelcol.component.kind": "Exporter", "otelcol.signal": "logs", "resource logs": 1, "log records": 2}
+```
+
 
 # View metrics in prometheus
 
