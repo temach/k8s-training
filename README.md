@@ -1284,18 +1284,15 @@ k8sattributes:
 2) ensure that otel data sends k8s.pod.ip or k8s.pod.uid, e.g. by setting env variables for otel instrumentation (See "SDK Configuration"): https://opentelemetry.io/docs/languages/sdk-configuration/general/ and https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
 
 To add k8s.pod.ip use the following:
-export OTEL_RESOURCE_ATTRIBUTES="key1=value1,key2=value2"
-
-k8s yaml env downward api pod ip:
 ```
 env:
- # since otel data is sent to the host, the source ip of pod is not visible to otel-collector, so must manually set it as attribute, else k8sattributesprocessor will not enrich
+ # since otel data is sent to the hostPort on node, the source ip of pod is not visible to otel-collector, so must manually set it as attribute, else k8sattributesprocessor will not enrich
  - name: MY_POD_IP
- valueFrom:
-   fieldRef:
-     fieldPath: status.podIP
+   valueFrom:
+     fieldRef:
+       fieldPath: status.podIP
  - name: OTEL_RESOURCE_ATTRIBUTES
- value: k8s.pod.ip=$(MY_POD_IP)
+   value: k8s.pod.ip=$(MY_POD_IP)
 ```
 
 Previously this was in otel collector logs (pod connection shown as 10.244.1.1 the cni0 bridge interface on the node):
