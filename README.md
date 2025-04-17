@@ -1316,6 +1316,8 @@ Job and service name can also be set via service.name env var (duplicates to "jo
 
 Finally to add e.g. k8s.cluster.uid, must adjust the k8sattributes processor config, enabling an extra k8s.cluster.uid metadata extraction.
 
+Read more about resource attributes that should exist: https://opentelemetry.io/docs/specs/semconv/resource/
+
 The end result is below (latest evolution is the first row to time series):
 
 
