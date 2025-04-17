@@ -48,6 +48,7 @@ spec:
               cpu: "200m"
           env:
             # otel best practices, see: https://opentelemetry.io/docs/security/config-best-practices/#kubernetes
+            # see https://kubernetes.io/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef
             - name: MY_HOST_IP
               valueFrom:
                 fieldRef:
@@ -62,6 +63,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: MY_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: MY_SERVICE_NAME
               valueFrom:
                 fieldRef:
@@ -69,4 +74,4 @@ spec:
                   # labels: "app.kubernetes.io/name" is the default label for service name
                   fieldPath: metadata.labels['app.kubernetes.io/name']
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: k8s.pod.ip=$(MY_POD_IP),service.name=$(MY_SERVICE_NAME)
+              value: k8s.pod.ip=$(MY_POD_IP),k8s.pod.uid=$(MY_POD_UID),service.name=$(MY_SERVICE_NAME)

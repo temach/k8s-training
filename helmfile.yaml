@@ -165,6 +165,7 @@ releases:
                 - cloud.region
                 - container.name
                 - deployment.environment.name
+                - k8s.cluster.uid
                 - k8s.cluster.name
                 - k8s.container.name
                 - k8s.cronjob.name
